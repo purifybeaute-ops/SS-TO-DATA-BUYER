@@ -1,0 +1,31 @@
+{
+  "summary": "Backend-only regression + new-feature testing for PetaPembeli. Added 7 new tests covering the 3 new endpoints/behaviors: (a) POST /api/customers/bulk (empty ids → 400 with Indonesian message, add_tag_ids + note_append happy path, operator allowed, remove_tag_ids), (b) GET /api/analytics/products (unfiltered w/ Bare Essence as top variation, kota filter reducing total_revenue, provinsi filter), (c) CSV import composite line_key (upserted == read; /csv/gap total dedupes by unique order_id and <= raw row count). All 36 tests pass (29 previous regression + 7 new) in ~21s.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py grew to ~843 lines — over the 700-LOC guideline. Split into routers (auth.py, customers.py, csv.py, analytics.py, tags.py, segments.py).",
+    "POST /api/customers/bulk iterates and does N update_one calls; for large bulk selections this should be a single update_many with $addToSet/$pull (note_append still requires per-doc read but tag ops can be batched).",
+    "GET /api/analytics/products loads up to 50k csv_orders into memory and aggregates in Python. Fine for current scale (~1500 rows) but should be a MongoDB $group pipeline at scale.",
+    "csv_import strips int() coercion by requiring row.get(mapping['quantity']).isdigit() — but a leading whitespace or '1.0' will silently fall back to 1. Consider _num() with int() cast.",
+    "csv_import assumes numeric revenue in 'SKU Subtotal After Discount' but TikTok exports sometimes include currency prefixes (Rp / IDR) — _num strips commas only. Suggest stripping non-numeric chars except decimal point.",
+    "/csv/gap dedupe now uses a first-seen strategy sorted by created_at_order desc — good, but for large datasets do a MongoDB aggregate with $group $first instead of Python-side dedupe on 50k rows."
+  ],
+  "updated_files": [
+    "/app/backend/tests/backend_test.py (added TestBulkCustomerUpdate + TestAnalyticsProducts; hardened TestCSV.test_import_and_gap to assert upserted == read and gap total == unique order_ids)"
+  ],
+  "success_rate": {"backend": "100% (36/36)", "frontend": "N/A (skipped per request)"},
+  "test_credentials": "owner@petapembeli.id / owner123 (owner), operator@petapembeli.id / operator123 (operator) — both confirmed.",
+  "seed_data_creation": "None added manually. Startup seed still populates 40 customers/51 orders/tags/norm rules. Tests create TEST_-prefixed tags/customers/notes; safe because IDs are UUID-based.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "All 36 backend tests pass. The new /api/customers/bulk is authenticated (any user) and returns {updated: N}; empty ids returns 400 'Pilih minimal 1 pelanggan'. /api/analytics/products supports kota and provinsi filters; top variation on the sample TikTok CSV is 'Bare Essence — Zero Base Sunscreen SPF 50+ PA++++...' with total_revenue > 0. CSV import upserted count now equals read (composite line_key {order_id}::{variation}). /csv/gap total dedupes to unique order_ids (< raw csv_orders row count due to multi-SKU orders). If frontend is next, use REACT_APP_BACKEND_URL from /app/frontend/.env.",
+  "rca_of_the_issue": "N/A — no failures observed in this iteration."
+}

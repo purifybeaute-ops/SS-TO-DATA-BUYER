@@ -2,7 +2,7 @@ import { Outlet, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth.jsx";
 import {
   LayoutDashboard, Upload as UploadIcon, Users, Map, Sparkles,
-  ClipboardList, Filter, Settings, Info, LogOut, MapPinned,
+  ClipboardList, Filter, Settings, Info, LogOut, MapPinned, Package,
 } from "lucide-react";
 
 const NAV = [
@@ -11,6 +11,7 @@ const NAV = [
   { to: "/pelanggan", label: "Database Pelanggan", icon: Users, testId: "nav-database-pelanggan" },
   { to: "/peta", label: "Peta & Analisis Lokasi", icon: Map, testId: "nav-peta-lokasi" },
   { to: "/creator", label: "Analisis Creator", icon: Sparkles, testId: "nav-analisis-creator" },
+  { to: "/produk", label: "Omset per Varian", icon: Package, testId: "nav-produk" },
   { to: "/perlu-ss", label: "Perlu Di-SS", icon: ClipboardList, testId: "nav-perlu-di-ss" },
   { to: "/segmen", label: "Segmen & Export", icon: Filter, testId: "nav-segmen-export" },
   { to: "/pengaturan", label: "Pengaturan", icon: Settings, testId: "nav-pengaturan" },

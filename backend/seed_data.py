@@ -51,6 +51,7 @@ DEFAULT_CSV_MAPPING = {
     "province": "Province",
     "regency_city": "Regency and City",
     "creator_handle": "Creator Handle",
+    "sku_subtotal_after_discount": "SKU Subtotal After Discount",
 }
 
 

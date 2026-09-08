@@ -326,6 +326,41 @@ async def patch_customer(cid: str, body: CustomerPatch, user=Depends(get_current
     return {"ok": True}
 
 
+class BulkCustomerUpdate(BaseModel):
+    ids: List[str]
+    add_tag_ids: Optional[List[str]] = None
+    remove_tag_ids: Optional[List[str]] = None
+    note_append: Optional[str] = None
+    note_replace: Optional[str] = None
+
+
+@api.post("/customers/bulk")
+async def bulk_update_customers(body: BulkCustomerUpdate, user=Depends(get_current_user)):
+    if not body.ids:
+        raise HTTPException(status_code=400, detail="Pilih minimal 1 pelanggan")
+    updated = 0
+    for cid in body.ids:
+        ops: Dict[str, Any] = {}
+        set_ops: Dict[str, Any] = {}
+        if body.add_tag_ids:
+            ops["$addToSet"] = {"tag_ids": {"$each": body.add_tag_ids}}
+        if body.remove_tag_ids:
+            ops["$pull"] = {"tag_ids": {"$in": body.remove_tag_ids}}
+        if body.note_replace is not None:
+            set_ops["notes"] = body.note_replace
+        elif body.note_append:
+            cur = await db.customers.find_one({"id": cid}, {"_id": 0, "notes": 1})
+            prev = (cur or {}).get("notes", "") or ""
+            set_ops["notes"] = (prev + ("\n" if prev else "") + body.note_append).strip()
+        if set_ops:
+            ops["$set"] = set_ops
+        if ops:
+            r = await db.customers.update_one({"id": cid}, ops)
+            if r.matched_count:
+                updated += 1
+    return {"updated": updated}
+
+
 # ---------------------------------------------------------------------------
 # Normalization rules
 # ---------------------------------------------------------------------------
@@ -510,7 +545,17 @@ async def csv_import(
     mapping = setting["value"] if setting else {
         "order_id": "Order ID", "variation": "Variation", "quantity": "Quantity",
         "province": "Province", "regency_city": "Regency and City", "creator_handle": "Creator Handle",
+        "sku_subtotal_after_discount": "SKU Subtotal After Discount",
     }
+
+    def _num(v):
+        if v is None:
+            return 0.0
+        s = str(v).replace(",", "").strip()
+        try:
+            return float(s) if s else 0.0
+        except Exception:
+            return 0.0
 
     reader = csv.DictReader(io.StringIO(text))
     count = 0
@@ -524,10 +569,15 @@ async def csv_import(
         city_raw = (row.get(mapping["regency_city"]) or "").strip() or None
         prov_norm = await apply_normalization(prov_raw, "provinsi") if prov_raw else None
         city_norm = await apply_normalization(city_raw, "kota") if city_raw else None
+        variation = (row.get(mapping["variation"]) or "").strip() or None
+        subtotal_col = mapping.get("sku_subtotal_after_discount", "SKU Subtotal After Discount")
+        line_key = f"{oid}::{variation or ''}"
         doc = {
+            "line_key": line_key,
             "order_id": oid,
-            "variation": (row.get(mapping["variation"]) or "").strip() or None,
+            "variation": variation,
             "quantity": int(row.get(mapping["quantity"]) or 1) if (row.get(mapping["quantity"]) or "").isdigit() else 1,
+            "sku_subtotal_after_discount": _num(row.get(subtotal_col)),
             "provinsi": prov_norm,
             "provinsi_raw": prov_raw,
             "kota": city_norm,
@@ -536,7 +586,7 @@ async def csv_import(
             "created_at_order": (row.get("Created Time") or "").strip() or None,
             "imported_at": now_iso(),
         }
-        await db.csv_orders.update_one({"order_id": oid}, {"$set": doc}, upsert=True)
+        await db.csv_orders.update_one({"line_key": line_key}, {"$set": doc}, upsert=True)
         upserted += 1
     return {"read": count, "upserted": upserted}
 
@@ -548,16 +598,65 @@ async def list_csv_orders(user=Depends(get_current_user)):
 
 @api.get("/csv/gap")
 async def csv_gap(user=Depends(get_current_user)):
-    """Orders in CSV but not yet captured by screenshot."""
-    csv_orders = await db.csv_orders.find({}, {"_id": 0}).sort("created_at_order", -1).to_list(20000)
+    """Orders in CSV but not yet captured by screenshot. Dedupes by order_id."""
+    csv_rows = await db.csv_orders.find({}, {"_id": 0}).sort("created_at_order", -1).to_list(50000)
+    seen = set()
+    unique = []
+    for r in csv_rows:
+        oid = r.get("order_id")
+        if not oid or oid in seen:
+            continue
+        seen.add(oid)
+        unique.append(r)
     captured_ids = set()
     async for o in db.orders.find({"order_id": {"$ne": None}}, {"_id": 0, "order_id": 1}):
         if o.get("order_id"):
             captured_ids.add(o["order_id"])
-    gap = [o for o in csv_orders if o["order_id"] not in captured_ids]
-    total = len(csv_orders)
+    gap = [o for o in unique if o["order_id"] not in captured_ids]
+    total = len(unique)
     captured = total - len(gap)
     return {"gap": gap, "total": total, "captured": captured}
+
+
+# ---------------------------------------------------------------------------
+# Product revenue analytics (from CSV)
+# ---------------------------------------------------------------------------
+@api.get("/analytics/products")
+async def analytics_products(
+    kota: Optional[str] = None,
+    provinsi: Optional[str] = None,
+    user=Depends(get_current_user),
+):
+    query: Dict[str, Any] = {}
+    if kota:
+        query["kota"] = kota
+    if provinsi:
+        query["provinsi"] = provinsi
+    rows = await db.csv_orders.find(query, {"_id": 0}).to_list(50000)
+    per_var: Dict[str, Dict[str, Any]] = defaultdict(lambda: {
+        "orders": 0, "qty": 0, "revenue": 0.0, "kota_counter": Counter(),
+    })
+    total_revenue = 0.0
+    total_orders = 0
+    for r in rows:
+        v = r.get("variation") or "(Tanpa varian)"
+        per_var[v]["orders"] += 1
+        per_var[v]["qty"] += int(r.get("quantity") or 0)
+        rev = float(r.get("sku_subtotal_after_discount") or 0)
+        per_var[v]["revenue"] += rev
+        total_revenue += rev
+        total_orders += 1
+        if r.get("kota"):
+            per_var[v]["kota_counter"][r["kota"]] += 1
+    products = [{
+        "variation": v,
+        "orders": s["orders"],
+        "qty": s["qty"],
+        "revenue": s["revenue"],
+        "top_cities": s["kota_counter"].most_common(3),
+    } for v, s in per_var.items()]
+    products.sort(key=lambda x: x["revenue"], reverse=True)
+    return {"total_revenue": total_revenue, "total_orders": total_orders, "products": products}
 
 
 # ---------------------------------------------------------------------------

@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { api, API } from "@/lib/api";
 import { toast } from "sonner";
-import { Filter, Download, MessageCircle, Copy } from "lucide-react";
+import { Filter, Download, MessageCircle, Copy, Play, Pause, Square as StopIcon } from "lucide-react";
 import { waLink } from "@/lib/format";
 
 export default function SegmenExport() {
@@ -14,6 +14,13 @@ export default function SegmenExport() {
   });
   const [preview, setPreview] = useState({ count: 0, customers: [] });
   const [showWaList, setShowWaList] = useState(false);
+
+  // Scheduler state
+  const [minDelay, setMinDelay] = useState(5);
+  const [maxDelay, setMaxDelay] = useState(10);
+  const [broadcast, setBroadcast] = useState({ running: false, idx: 0, paused: false });
+  const timerRef = useRef(null);
+  const brStateRef = useRef({ running: false, paused: false });
 
   useEffect(() => {
     api.get("/tags").then((r) => setTags(r.data));
@@ -41,13 +48,10 @@ export default function SegmenExport() {
 
   const exportCsv = async () => {
     const body = {
-      kota: filters.kota || null,
-      provinsi: filters.provinsi || null,
+      kota: filters.kota || null, provinsi: filters.provinsi || null,
       repeat: filters.repeat === "yes" ? true : filters.repeat === "no" ? false : null,
-      tag_id: filters.tag_id || null,
-      creator: filters.creator || null,
-      date_from: filters.date_from || null,
-      date_to: filters.date_to || null,
+      tag_id: filters.tag_id || null, creator: filters.creator || null,
+      date_from: filters.date_from || null, date_to: filters.date_to || null,
     };
     const token = localStorage.getItem("pp_token");
     const resp = await fetch(`${API}/segments/export/csv`, {
@@ -63,12 +67,63 @@ export default function SegmenExport() {
   };
 
   const copyList = () => {
-    const list = preview.customers
-      .map((c) => `${c.recipient_name} - ${c.phone}`)
-      .join("\n");
+    const list = preview.customers.map((c) => `${c.recipient_name} - ${c.phone}`).join("\n");
     navigator.clipboard.writeText(list);
     toast.success("Daftar disalin ke clipboard");
   };
+
+  // ---- Broadcast Scheduler ----
+  const cancelTimer = () => {
+    if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
+  };
+
+  const scheduleNext = (i, list) => {
+    if (!brStateRef.current.running) return;
+    if (brStateRef.current.paused) {
+      // check again in 500ms
+      timerRef.current = setTimeout(() => scheduleNext(i, list), 500);
+      return;
+    }
+    if (i >= list.length) {
+      brStateRef.current.running = false;
+      setBroadcast({ running: false, idx: 0, paused: false });
+      toast.success("Broadcast selesai");
+      return;
+    }
+    setBroadcast((prev) => ({ ...prev, idx: i }));
+    const c = list[i];
+    const href = waLink(c.phone, tplLocal, c.recipient_name);
+    // Open in a new tab
+    window.open(href, "_blank", "noopener,noreferrer");
+    const min = Math.max(1, minDelay);
+    const max = Math.max(min, maxDelay);
+    const delaySec = min + Math.random() * (max - min);
+    timerRef.current = setTimeout(() => scheduleNext(i + 1, list), delaySec * 1000);
+  };
+
+  const startBroadcast = () => {
+    if (preview.customers.length === 0) return toast.error("Tidak ada pelanggan di segmen");
+    if (!window.confirm(`Mulai broadcast otomatis ke ${preview.customers.length} pelanggan? Setiap tab WA akan dibuka dengan jeda ${minDelay}-${maxDelay} detik.`)) return;
+    brStateRef.current = { running: true, paused: false };
+    setBroadcast({ running: true, idx: 0, paused: false });
+    scheduleNext(0, preview.customers);
+  };
+  const pauseBroadcast = () => {
+    brStateRef.current.paused = true;
+    setBroadcast((p) => ({ ...p, paused: true }));
+  };
+  const resumeBroadcast = () => {
+    brStateRef.current.paused = false;
+    setBroadcast((p) => ({ ...p, paused: false }));
+  };
+  const stopBroadcast = () => {
+    brStateRef.current = { running: false, paused: false };
+    cancelTimer();
+    setBroadcast({ running: false, idx: 0, paused: false });
+    toast.info("Broadcast dihentikan");
+  };
+
+  useEffect(() => () => cancelTimer(), []);
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-5" data-testid="segmen-page">
@@ -77,7 +132,7 @@ export default function SegmenExport() {
         <h1 className="font-display text-3xl sm:text-4xl font-extrabold tracking-tight text-stone-900">
           Segmen & Export
         </h1>
-        <p className="text-stone-600 mt-2">Filter pelanggan, ekspor CSV, atau siapkan daftar broadcast WhatsApp.</p>
+        <p className="text-stone-600 mt-2">Filter pelanggan, ekspor CSV, atau kirim broadcast WhatsApp bertahap.</p>
       </div>
 
       <div className="pp-card p-5">
@@ -135,7 +190,7 @@ export default function SegmenExport() {
             </button>
             <button onClick={() => setShowWaList(true)} data-testid="btn-export-wa-list"
                     className="pp-btn-wa rounded-lg px-3 py-2 text-sm font-medium inline-flex items-center gap-2">
-              <MessageCircle className="w-4 h-4" /> Daftar WA
+              <MessageCircle className="w-4 h-4" /> Daftar WA & Broadcast
             </button>
           </div>
         </div>
@@ -144,7 +199,7 @@ export default function SegmenExport() {
       {showWaList && (
         <div className="pp-card p-5" data-testid="wa-list-panel">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="font-display font-bold text-lg">Daftar Broadcast WhatsApp ({preview.count})</h3>
+            <h3 className="font-display font-bold text-lg">Broadcast WhatsApp ({preview.count})</h3>
             <button onClick={() => setShowWaList(false)} className="text-xs pp-link">Tutup</button>
           </div>
           <div className="mb-3">
@@ -152,14 +207,79 @@ export default function SegmenExport() {
             <textarea value={tplLocal} onChange={(e) => setTplLocal(e.target.value)}
                       rows={2} className="pp-input rounded-md px-2.5 py-2 text-sm w-full" data-testid="wa-template-input" />
           </div>
-          <div className="flex items-center gap-2 mb-3">
-            <button onClick={copyList} className="pp-btn-secondary rounded-lg px-3 py-1.5 text-xs inline-flex items-center gap-1">
-              <Copy className="w-3 h-3" /> Salin Nama + Telepon
-            </button>
+
+          {/* Scheduler controls */}
+          <div className="rounded-lg p-3 mb-3 border" style={{ background: "var(--surface-muted)", borderColor: "var(--border)" }}>
+            <div className="flex items-start justify-between gap-3 flex-wrap">
+              <div>
+                <div className="text-xs uppercase tracking-wider font-semibold text-stone-500 mb-1">Broadcast Terjadwal</div>
+                <div className="text-sm text-stone-700">Buka tab WA satu per satu dengan jeda acak agar terasa manusiawi & aman dari spam-flag.</div>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <label className="flex items-center gap-1">
+                  <span className="text-xs text-stone-500">Min</span>
+                  <input type="number" min="1" max="60" value={minDelay} onChange={(e) => setMinDelay(Number(e.target.value))}
+                         className="pp-input rounded-md px-2 py-1 w-14 text-sm" data-testid="broadcast-min" />
+                </label>
+                <label className="flex items-center gap-1">
+                  <span className="text-xs text-stone-500">Max</span>
+                  <input type="number" min="1" max="120" value={maxDelay} onChange={(e) => setMaxDelay(Number(e.target.value))}
+                         className="pp-input rounded-md px-2 py-1 w-14 text-sm" data-testid="broadcast-max" />
+                </label>
+                <span className="text-xs text-stone-500">detik</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 mt-3">
+              {!broadcast.running ? (
+                <button onClick={startBroadcast} data-testid="btn-broadcast-start"
+                        className="pp-btn-primary rounded-md px-3 py-1.5 text-xs font-semibold inline-flex items-center gap-1">
+                  <Play className="w-3 h-3" /> Mulai Broadcast
+                </button>
+              ) : (
+                <>
+                  {!broadcast.paused ? (
+                    <button onClick={pauseBroadcast} data-testid="btn-broadcast-pause"
+                            className="pp-btn-secondary rounded-md px-3 py-1.5 text-xs font-semibold inline-flex items-center gap-1">
+                      <Pause className="w-3 h-3" /> Jeda
+                    </button>
+                  ) : (
+                    <button onClick={resumeBroadcast} data-testid="btn-broadcast-resume"
+                            className="pp-btn-primary rounded-md px-3 py-1.5 text-xs font-semibold inline-flex items-center gap-1">
+                      <Play className="w-3 h-3" /> Lanjut
+                    </button>
+                  )}
+                  <button onClick={stopBroadcast} data-testid="btn-broadcast-stop"
+                          className="rounded-md px-3 py-1.5 text-xs font-semibold inline-flex items-center gap-1"
+                          style={{ background: "#991B1B", color: "#fff" }}>
+                    <StopIcon className="w-3 h-3" /> Stop
+                  </button>
+                  <div className="text-xs text-stone-600 ml-2">
+                    {broadcast.paused ? "Dijeda" : "Berjalan"} · {broadcast.idx + 1}/{preview.customers.length}
+                  </div>
+                </>
+              )}
+              <button onClick={copyList} className="pp-btn-secondary rounded-md px-3 py-1.5 text-xs inline-flex items-center gap-1 ml-auto">
+                <Copy className="w-3 h-3" /> Salin Nama+HP
+              </button>
+            </div>
+            {broadcast.running && (
+              <div className="mt-2 h-1.5 rounded-full overflow-hidden" style={{ background: "#E5DEC9" }}>
+                <div className="h-full transition-all" style={{
+                  width: `${((broadcast.idx + 1) / Math.max(1, preview.customers.length)) * 100}%`,
+                  background: "var(--accent)",
+                }} />
+              </div>
+            )}
+            <div className="text-[11px] text-stone-500 mt-2">
+              💡 Pastikan browser mengizinkan pop-up dari domain ini agar tab WA bisa dibuka otomatis.
+            </div>
           </div>
+
           <div className="max-h-96 overflow-y-auto divide-y" style={{ borderColor: "var(--border)" }}>
-            {preview.customers.map((c) => (
-              <div key={c.id} className="py-2 flex items-center gap-3 text-sm">
+            {preview.customers.map((c, i) => (
+              <div key={c.id}
+                   className={`py-2 flex items-center gap-3 text-sm ${broadcast.running && i === broadcast.idx ? "bg-orange-50 -mx-2 px-2 rounded" : ""}`}>
+                <div className="w-6 text-xs text-stone-400 font-mono">{i + 1}</div>
                 <div className="flex-1">
                   <div className="font-medium">{c.recipient_name}</div>
                   <div className="text-xs text-stone-500 font-mono">{c.phone}</div>

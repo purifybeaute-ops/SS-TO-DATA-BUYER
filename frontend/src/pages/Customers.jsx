@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
-import { Search, Filter, MessageCircle, StickyNote, X, Save, Tag as TagIcon } from "lucide-react";
+import { Search, MessageCircle, StickyNote, X, Save, Tag as TagIcon, CheckSquare, Square, Trash2 } from "lucide-react";
 import { formatDateShortID, waLink } from "@/lib/format";
 
 export default function Customers() {
@@ -11,7 +11,9 @@ export default function Customers() {
   const [q, setQ] = useState("");
   const [filterRepeat, setFilterRepeat] = useState("all");
   const [filterTag, setFilterTag] = useState("");
-  const [drawer, setDrawer] = useState(null); // customer id
+  const [drawer, setDrawer] = useState(null);
+  const [selected, setSelected] = useState(new Set());
+  const [bulkPanel, setBulkPanel] = useState(false);
 
   const load = () => api.get("/customers").then((r) => setRows(r.data));
 
@@ -37,8 +39,30 @@ export default function Customers() {
 
   const tagById = useMemo(() => Object.fromEntries(tags.map((t) => [t.id, t])), [tags]);
 
+  const toggle = (id) => {
+    setSelected((prev) => {
+      const s = new Set(prev);
+      s.has(id) ? s.delete(id) : s.add(id);
+      return s;
+    });
+  };
+  const toggleAll = () => {
+    if (selected.size === filtered.length) setSelected(new Set());
+    else setSelected(new Set(filtered.map((r) => r.id)));
+  };
+  const allSelected = filtered.length > 0 && selected.size === filtered.length;
+
+  const applyBulk = async (payload) => {
+    if (selected.size === 0) return;
+    await api.post("/customers/bulk", { ids: Array.from(selected), ...payload });
+    toast.success(`${selected.size} pelanggan diperbarui`);
+    setSelected(new Set());
+    setBulkPanel(false);
+    load();
+  };
+
   return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-5" data-testid="customers-page">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-5 pb-32" data-testid="customers-page">
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
         <div>
           <div className="text-xs uppercase tracking-wider text-stone-500 mb-1">CRM</div>
@@ -60,22 +84,14 @@ export default function Customers() {
             data-testid="search-pelanggan-input"
           />
         </div>
-        <select
-          value={filterRepeat}
-          onChange={(e) => setFilterRepeat(e.target.value)}
-          className="pp-input rounded-lg px-3 py-2 text-sm"
-          data-testid="filter-repeat-select"
-        >
+        <select value={filterRepeat} onChange={(e) => setFilterRepeat(e.target.value)}
+                className="pp-input rounded-lg px-3 py-2 text-sm" data-testid="filter-repeat-select">
           <option value="all">Semua Pembeli</option>
           <option value="yes">Hanya Berulang</option>
           <option value="no">Hanya Baru</option>
         </select>
-        <select
-          value={filterTag}
-          onChange={(e) => setFilterTag(e.target.value)}
-          className="pp-input rounded-lg px-3 py-2 text-sm"
-          data-testid="filter-tag-select"
-        >
+        <select value={filterTag} onChange={(e) => setFilterTag(e.target.value)}
+                className="pp-input rounded-lg px-3 py-2 text-sm" data-testid="filter-tag-select">
           <option value="">Semua Tag</option>
           {tags.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
         </select>
@@ -85,6 +101,11 @@ export default function Customers() {
         <table className="pp-table">
           <thead>
             <tr>
+              <th style={{ width: 36 }}>
+                <button onClick={toggleAll} data-testid="bulk-select-all" className="text-stone-500 hover:text-orange-700">
+                  {allSelected ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
+                </button>
+              </th>
               <th>Nama</th>
               <th>Username</th>
               <th>Telepon</th>
@@ -95,12 +116,17 @@ export default function Customers() {
               <th>Order</th>
               <th>Tag</th>
               <th>Last Seen</th>
-              <th></th>
             </tr>
           </thead>
           <tbody>
             {filtered.map((c) => (
-              <tr key={c.id}>
+              <tr key={c.id} className={selected.has(c.id) ? "bg-orange-50" : ""}>
+                <td>
+                  <button onClick={() => toggle(c.id)} data-testid={`bulk-select-${c.id}`}
+                          className={selected.has(c.id) ? "text-orange-700" : "text-stone-400 hover:text-orange-700"}>
+                    {selected.has(c.id) ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
+                  </button>
+                </td>
                 <td>
                   <button onClick={() => setDrawer(c.id)} className="font-medium hover:underline text-stone-900"
                           data-testid={`open-detail-${c.id}`}>
@@ -142,11 +168,6 @@ export default function Customers() {
                   </div>
                 </td>
                 <td className="text-xs text-stone-500">{formatDateShortID(c.last_seen)}</td>
-                <td>
-                  <button onClick={() => setDrawer(c.id)} className="text-orange-700 text-xs hover:underline">
-                    Detail
-                  </button>
-                </td>
               </tr>
             ))}
           </tbody>
@@ -158,6 +179,33 @@ export default function Customers() {
         )}
       </div>
 
+      {/* Sticky bulk action bar */}
+      {selected.size > 0 && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 pp-card shadow-xl px-4 py-3 flex items-center gap-3"
+             style={{ background: "#1C1917", color: "white", borderColor: "#292524" }}
+             data-testid="bulk-action-bar">
+          <div className="text-sm">
+            <span className="font-bold">{selected.size}</span> dipilih
+          </div>
+          <button onClick={() => setBulkPanel(true)} data-testid="btn-open-bulk"
+                  className="rounded-md px-3 py-1.5 text-xs font-semibold" style={{ background: "var(--accent)" }}>
+            Aksi Bulk
+          </button>
+          <button onClick={() => setSelected(new Set())} className="text-xs opacity-70 hover:opacity-100">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {bulkPanel && (
+        <BulkPanel
+          count={selected.size}
+          tags={tags}
+          onClose={() => setBulkPanel(false)}
+          onApply={applyBulk}
+        />
+      )}
+
       {drawer && (
         <CustomerDrawer
           id={drawer}
@@ -167,6 +215,90 @@ export default function Customers() {
           waTemplate={waTemplate}
         />
       )}
+    </div>
+  );
+}
+
+function BulkPanel({ count, tags, onClose, onApply }) {
+  const [addTags, setAddTags] = useState(new Set());
+  const [removeTags, setRemoveTags] = useState(new Set());
+  const [noteAppend, setNoteAppend] = useState("");
+  const [applying, setApplying] = useState(false);
+
+  const toggleAdd = (id) => setAddTags((p) => { const s = new Set(p); s.has(id) ? s.delete(id) : s.add(id); return s; });
+  const toggleRemove = (id) => setRemoveTags((p) => { const s = new Set(p); s.has(id) ? s.delete(id) : s.add(id); return s; });
+
+  const apply = async () => {
+    setApplying(true);
+    try {
+      await onApply({
+        add_tag_ids: Array.from(addTags),
+        remove_tag_ids: Array.from(removeTags),
+        note_append: noteAppend || null,
+      });
+    } finally { setApplying(false); }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-4" data-testid="bulk-panel">
+      <div className="pp-card w-full max-w-md p-5 space-y-4">
+        <div className="flex items-start justify-between">
+          <div>
+            <h3 className="font-display font-bold text-lg">Aksi Bulk untuk {count} pelanggan</h3>
+            <p className="text-xs text-stone-500 mt-0.5">Perubahan akan diterapkan ke semua yang dipilih.</p>
+          </div>
+          <button onClick={onClose} className="p-1 hover:bg-stone-100 rounded"><X className="w-4 h-4" /></button>
+        </div>
+
+        <div>
+          <label className="text-xs uppercase tracking-wider font-semibold text-stone-500 block mb-2">Tambah Tag</label>
+          <div className="flex flex-wrap gap-1.5">
+            {tags.map((t) => {
+              const on = addTags.has(t.id);
+              return (
+                <button key={t.id} onClick={() => toggleAdd(t.id)}
+                        className="pp-badge cursor-pointer"
+                        data-testid={`bulk-add-${t.name}`}
+                        style={{ background: on ? t.color : `${t.color}20`, color: on ? "#fff" : t.color, borderColor: `${t.color}55` }}>
+                  + {t.name}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div>
+          <label className="text-xs uppercase tracking-wider font-semibold text-stone-500 block mb-2">Hapus Tag</label>
+          <div className="flex flex-wrap gap-1.5">
+            {tags.map((t) => {
+              const on = removeTags.has(t.id);
+              return (
+                <button key={t.id} onClick={() => toggleRemove(t.id)}
+                        className="pp-badge cursor-pointer inline-flex items-center gap-1"
+                        style={{ background: on ? "#991B1B" : "#F3F4F6", color: on ? "#fff" : "#4B5563", borderColor: on ? "#7F1D1D" : "#D1D5DB" }}>
+                  <Trash2 className="w-2.5 h-2.5" /> {t.name}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div>
+          <label className="text-xs uppercase tracking-wider font-semibold text-stone-500 block mb-2">Tambah Catatan (ditambahkan ke catatan yang ada)</label>
+          <textarea value={noteAppend} onChange={(e) => setNoteAppend(e.target.value)} rows={3}
+                    placeholder="mis. Prospek VIP, pantau closing rate minggu depan"
+                    className="pp-input w-full rounded-md px-2.5 py-2 text-sm" data-testid="bulk-note-append" />
+        </div>
+
+        <div className="flex justify-end gap-2 pt-1">
+          <button onClick={onClose} className="pp-btn-secondary rounded-md px-3 py-2 text-sm">Batal</button>
+          <button onClick={apply} disabled={applying || (addTags.size === 0 && removeTags.size === 0 && !noteAppend)}
+                  className="pp-btn-primary rounded-md px-4 py-2 text-sm font-semibold inline-flex items-center gap-2"
+                  data-testid="btn-bulk-apply">
+            <Save className="w-4 h-4" /> {applying ? "Menyimpan..." : "Terapkan"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

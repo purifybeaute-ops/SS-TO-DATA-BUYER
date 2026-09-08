@@ -338,6 +338,9 @@ class TestCSV:
         data = r.json()
         assert data["read"] > 0
         assert data["upserted"] > 0
+        # New: composite line_key means upserted must equal read (minus rows with empty order_id)
+        # For TikTok sample all rows have order_id.
+        assert data["upserted"] == data["read"], f"upserted {data['upserted']} != read {data['read']}"
 
         gap = requests.get(f"{BASE_URL}/api/csv/gap",
                            headers=_owner_headers(owner_token), timeout=30)
@@ -345,6 +348,148 @@ class TestCSV:
         gd = gap.json()
         assert "gap" in gd and "total" in gd and "captured" in gd
         assert len(gd["gap"]) > 0
+        # gap total dedupes by order_id and must be <= raw csv_orders rows (which have multi-SKU dups)
+        csv_rows_resp = requests.get(f"{BASE_URL}/api/csv/orders",
+                                     headers=_owner_headers(owner_token), timeout=30)
+        assert csv_rows_resp.status_code == 200
+        raw_rows = csv_rows_resp.json()
+        unique_oids = len({r["order_id"] for r in raw_rows if r.get("order_id")})
+        assert gd["total"] == unique_oids, f"gap total {gd['total']} != unique order_ids {unique_oids}"
+        assert gd["total"] <= len(raw_rows)
+
+
+# --------------------------------------------------------------------------- Bulk update (NEW)
+class TestBulkCustomerUpdate:
+    def test_bulk_empty_ids_400(self, owner_token):
+        r = requests.post(f"{BASE_URL}/api/customers/bulk",
+                          headers=_owner_headers(owner_token),
+                          json={"ids": [], "note_append": "x"}, timeout=15)
+        assert r.status_code == 400
+        assert "minimal 1" in r.json().get("detail", "").lower()
+
+    def test_bulk_add_tag_and_append_note(self, owner_token):
+        rows = requests.get(f"{BASE_URL}/api/customers",
+                            headers=_owner_headers(owner_token), timeout=15).json()
+        ids = [c["id"] for c in rows[:3]]
+        assert len(ids) == 3
+
+        tags = requests.get(f"{BASE_URL}/api/tags",
+                            headers=_owner_headers(owner_token), timeout=15).json()
+        tag_id = tags[0]["id"]
+
+        # Capture previous notes for each
+        prev_notes = {}
+        for cid in ids:
+            c = requests.get(f"{BASE_URL}/api/customers/{cid}",
+                             headers=_owner_headers(owner_token), timeout=15).json()["customer"]
+            prev_notes[cid] = c.get("notes", "") or ""
+
+        note = f"TEST_BULK_{uuid.uuid4().hex[:6]}"
+        r = requests.post(f"{BASE_URL}/api/customers/bulk",
+                          headers=_owner_headers(owner_token),
+                          json={"ids": ids, "add_tag_ids": [tag_id], "note_append": note},
+                          timeout=20)
+        assert r.status_code == 200, r.text
+        assert r.json()["updated"] == 3
+
+        for cid in ids:
+            c = requests.get(f"{BASE_URL}/api/customers/{cid}",
+                             headers=_owner_headers(owner_token), timeout=15).json()["customer"]
+            assert tag_id in c["tag_ids"], f"tag not added for {cid}"
+            assert note in (c.get("notes") or ""), f"note not appended for {cid}"
+            # If had prev, verify newline separation
+            if prev_notes[cid]:
+                assert prev_notes[cid] in c["notes"]
+                assert "\n" in c["notes"]
+
+    def test_bulk_operator_allowed(self, operator_token, owner_token):
+        rows = requests.get(f"{BASE_URL}/api/customers",
+                            headers=_owner_headers(owner_token), timeout=15).json()
+        ids = [rows[0]["id"]]
+        r = requests.post(f"{BASE_URL}/api/customers/bulk",
+                          headers=_owner_headers(operator_token),
+                          json={"ids": ids, "note_append": f"TEST_OP_{uuid.uuid4().hex[:4]}"},
+                          timeout=15)
+        assert r.status_code == 200
+        assert r.json()["updated"] == 1
+
+    def test_bulk_remove_tag(self, owner_token):
+        rows = requests.get(f"{BASE_URL}/api/customers",
+                            headers=_owner_headers(owner_token), timeout=15).json()
+        cid = rows[0]["id"]
+
+        # Create a fresh tag to add then remove
+        tag = requests.post(f"{BASE_URL}/api/tags",
+                            headers=_owner_headers(owner_token),
+                            json={"name": f"TEST_TAG_{uuid.uuid4().hex[:5]}", "color": "#abcdef"},
+                            timeout=15).json()
+        tid = tag["id"]
+
+        # Add via bulk
+        r1 = requests.post(f"{BASE_URL}/api/customers/bulk",
+                           headers=_owner_headers(owner_token),
+                           json={"ids": [cid], "add_tag_ids": [tid]}, timeout=15)
+        assert r1.status_code == 200
+        c = requests.get(f"{BASE_URL}/api/customers/{cid}",
+                         headers=_owner_headers(owner_token), timeout=15).json()["customer"]
+        assert tid in c["tag_ids"]
+
+        # Remove via bulk
+        r2 = requests.post(f"{BASE_URL}/api/customers/bulk",
+                           headers=_owner_headers(owner_token),
+                           json={"ids": [cid], "remove_tag_ids": [tid]}, timeout=15)
+        assert r2.status_code == 200
+        c2 = requests.get(f"{BASE_URL}/api/customers/{cid}",
+                          headers=_owner_headers(owner_token), timeout=15).json()["customer"]
+        assert tid not in c2["tag_ids"]
+
+        # Cleanup tag
+        requests.delete(f"{BASE_URL}/api/tags/{tid}", headers=_owner_headers(owner_token))
+
+
+# --------------------------------------------------------------------------- Product analytics (NEW)
+class TestAnalyticsProducts:
+    def test_products_unfiltered(self, owner_token):
+        r = requests.get(f"{BASE_URL}/api/analytics/products",
+                         headers=_owner_headers(owner_token), timeout=30)
+        assert r.status_code == 200, r.text
+        d = r.json()
+        assert d["total_revenue"] > 0, f"total_revenue not > 0: {d['total_revenue']}"
+        assert d["total_orders"] > 0
+        assert isinstance(d["products"], list) and len(d["products"]) > 0
+        p0 = d["products"][0]
+        for k in ["variation", "orders", "qty", "revenue", "top_cities"]:
+            assert k in p0
+        # Products sorted by revenue desc
+        revenues = [p["revenue"] for p in d["products"]]
+        assert revenues == sorted(revenues, reverse=True)
+        # top_cities structure
+        assert isinstance(p0["top_cities"], list)
+        # Bare Essence should be top per requirements
+        top_var = p0["variation"] or ""
+        print("TOP PRODUCT:", top_var, "revenue:", p0["revenue"])
+        assert "Bare Essence" in top_var, f"expected 'Bare Essence' top, got '{top_var}'"
+
+    def test_products_kota_filter(self, owner_token):
+        unfilt = requests.get(f"{BASE_URL}/api/analytics/products",
+                              headers=_owner_headers(owner_token), timeout=30).json()
+        filt = requests.get(f"{BASE_URL}/api/analytics/products?kota=Kota Bandung",
+                            headers=_owner_headers(owner_token), timeout=30)
+        assert filt.status_code == 200
+        d = filt.json()
+        assert d["total_revenue"] < unfilt["total_revenue"], "filtered rev must be < unfiltered"
+        # Verify all underlying rows for this filter are Kota Bandung by checking top_cities
+        for p in d["products"]:
+            for city, _cnt in p["top_cities"]:
+                assert city == "Kota Bandung", f"non-Bandung city leaked: {city}"
+
+    def test_products_provinsi_filter(self, owner_token):
+        r = requests.get(f"{BASE_URL}/api/analytics/products?provinsi=Jawa Barat",
+                         headers=_owner_headers(owner_token), timeout=30)
+        assert r.status_code == 200
+        d = r.json()
+        assert d["total_revenue"] >= 0
+        assert isinstance(d["products"], list)
 
 
 # --------------------------------------------------------------------------- Settings
