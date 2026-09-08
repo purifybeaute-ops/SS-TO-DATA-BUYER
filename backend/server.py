@@ -894,12 +894,17 @@ async def get_vision_job(job_id: str, user=Depends(get_current_user)):
 # ---------------------------------------------------------------------------
 # PDF export — segment
 # ---------------------------------------------------------------------------
-def _build_segment_pdf(rows: List[dict], tag_map: Dict[str, dict], title: str) -> bytes:
+def _build_segment_pdf(rows: List[dict], tag_map: Dict[str, dict], title: str, header_cfg: Optional[dict] = None) -> bytes:
     from reportlab.lib.pagesizes import A4, landscape
     from reportlab.lib import colors
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.lib.units import mm
-    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
+
+    header_cfg = header_cfg or {}
+    shop_name = (header_cfg.get("shop_name") or "").strip()
+    shop_note = (header_cfg.get("note") or "").strip()
+    logo_data_url = header_cfg.get("logo_data_url") or ""
 
     buf = io.BytesIO()
     doc = SimpleDocTemplate(
@@ -908,15 +913,59 @@ def _build_segment_pdf(rows: List[dict], tag_map: Dict[str, dict], title: str) -
         topMargin=12 * mm, bottomMargin=12 * mm,
     )
     styles = getSampleStyleSheet()
+    shop_style = ParagraphStyle("shop", parent=styles["Heading1"], textColor=colors.HexColor("#C2410C"),
+                                fontName="Helvetica-Bold", fontSize=16, leading=20, spaceAfter=2)
+    note_style = ParagraphStyle("note", parent=styles["Normal"], textColor=colors.HexColor("#57534E"),
+                                fontSize=9, leading=12, spaceAfter=4)
     title_style = ParagraphStyle("t", parent=styles["Heading1"], textColor=colors.HexColor("#1C1917"),
-                                 fontName="Helvetica-Bold", fontSize=18, leading=22, spaceAfter=4)
+                                 fontName="Helvetica-Bold", fontSize=15, leading=19, spaceAfter=2, spaceBefore=6)
     sub_style = ParagraphStyle("s", parent=styles["Normal"], textColor=colors.HexColor("#78716C"),
                                fontSize=9, leading=12, spaceAfter=10)
 
-    elements = [
-        Paragraph(title, title_style),
-        Paragraph(f"PetaPembeli · Dibuat {datetime.now().strftime('%d/%m/%Y %H:%M')} · Total {len(rows)} pelanggan", sub_style),
-    ]
+    elements: List[Any] = []
+
+    # --- Custom header (logo + shop name + note) ---
+    header_right = []
+    if shop_name:
+        header_right.append(Paragraph(shop_name, shop_style))
+    if shop_note:
+        header_right.append(Paragraph(shop_note.replace("\n", "<br/>"), note_style))
+    if not header_right:
+        header_right.append(Paragraph("PetaPembeli", shop_style))
+
+    logo_img = None
+    if logo_data_url and "," in logo_data_url:
+        try:
+            b64 = logo_data_url.split(",", 1)[1]
+            img_bytes = base64.b64decode(b64)
+            # Verify the image is decodable before handing to reportlab (avoids doc.build crashes on corrupt data)
+            from PIL import Image as PILImage
+            PILImage.open(io.BytesIO(img_bytes)).verify()
+            logo_img = Image(io.BytesIO(img_bytes), width=32 * mm, height=32 * mm, kind="proportional")
+        except Exception as e:
+            logger.warning("Logo decode/verify failed: %s", e)
+            logo_img = None
+
+    if logo_img:
+        header_table = Table([[logo_img, header_right]], colWidths=[36 * mm, None])
+    else:
+        header_table = Table([[header_right]], colWidths=[None])
+    header_table.setStyle(TableStyle([
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 0),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+        ("TOPPADDING", (0, 0), (-1, -1), 0),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+        ("LINEBELOW", (0, 0), (-1, -1), 0.8, colors.HexColor("#C2410C")),
+    ]))
+    elements.append(header_table)
+    elements.append(Spacer(1, 4 * mm))
+
+    elements.append(Paragraph(title, title_style))
+    elements.append(Paragraph(
+        f"Dibuat {datetime.now().strftime('%d/%m/%Y %H:%M')} · Total {len(rows)} pelanggan",
+        sub_style,
+    ))
 
     header = ["No", "Nama", "Username", "Telepon", "Kota", "Provinsi", "Tag", "Order"]
     data: List[List[Any]] = [header]
@@ -961,13 +1010,15 @@ async def segment_export_pdf(body: SegmentFilter, user=Depends(get_current_user)
     rows = await _query_segment(body)
     tags = await db.tags.find({}, {"_id": 0}).to_list(200)
     tag_map = {t["id"]: t for t in tags}
+    header_setting = await db.settings.find_one({"key": "pdf_header"}, {"_id": 0})
+    header_cfg = (header_setting or {}).get("value") or {}
     parts = []
     if body.kota: parts.append(body.kota)
     if body.provinsi: parts.append(body.provinsi)
     if body.repeat is True: parts.append("Pembeli Berulang")
     if body.tag_id and body.tag_id in tag_map: parts.append(f"Tag {tag_map[body.tag_id]['name']}")
     title = f"Segmen Pelanggan — {', '.join(parts) if parts else 'Semua'}"
-    pdf_bytes = _build_segment_pdf(rows, tag_map, title)
+    pdf_bytes = _build_segment_pdf(rows, tag_map, title, header_cfg)
     return Response(
         content=pdf_bytes,
         media_type="application/pdf",

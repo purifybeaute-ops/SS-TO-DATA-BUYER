@@ -44,6 +44,7 @@ Polish, seed ~40 demo customers, "Tentang" page.
 - ✅ Login flow, dashboard, and map navigation confirmed via backend logs
 - ✅ **Feb 2026 iteration 2**: Bulk Tagging (POST /api/customers/bulk), Broadcast Scheduler (frontend queue with 5-10s random delay), Product Revenue View (GET /api/analytics/products + new /produk page). CSV import now saves SKU Subtotal After Discount and uses composite (order_id, variation) key so multi-SKU orders are preserved.
 - ✅ **Feb 2026 iteration 3**: Bulk ZIP Import (POST /api/vision/extract-zip + background asyncio task + GET /api/vision/jobs/{id} polling). Segment PDF Export (POST /api/segments/export/pdf using reportlab, landscape A4). Reminder page (/reminder) with GET /api/reminders bucketing 30/60/90+ days inactive customers with WA quick-chat.
+- ✅ **Feb 2026 iteration 4**: PDF Custom Header — new "Header PDF" tab in Pengaturan lets owner set shop name, note, and upload a logo. Logo auto-resized to max 400px on the client, stored via PUT /api/settings/pdf_header. PDF renders the logo + shop name (terracotta) + note + accent bottom-border above the segment title. PIL verify guards against corrupt logo data.
 
 ## Test Coverage
 - Iteration 1: 29/29 pass

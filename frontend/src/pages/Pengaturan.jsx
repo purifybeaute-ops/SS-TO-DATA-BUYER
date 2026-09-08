@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
-import { Trash2, Plus, Save, MessageCircle, MapPin, Tag as TagIcon, Users } from "lucide-react";
+import { Trash2, Plus, Save, MessageCircle, MapPin, Tag as TagIcon, Users, FileText, Upload as UploadIcon, Image as ImageIcon } from "lucide-react";
 import { useAuth } from "@/lib/auth.jsx";
 
 const TABS = [
   { key: "norm", label: "Normalisasi Wilayah", icon: MapPin },
   { key: "tags", label: "Tag Khusus", icon: TagIcon },
   { key: "wa", label: "Template WA", icon: MessageCircle },
+  { key: "pdf", label: "Header PDF", icon: FileText },
   { key: "csv", label: "Mapping CSV", icon: MapPin },
   { key: "users", label: "Operator", icon: Users },
 ];
@@ -38,6 +39,7 @@ export default function Pengaturan() {
       {tab === "norm" && <NormPanel isOwner={isOwner} />}
       {tab === "tags" && <TagsPanel isOwner={isOwner} />}
       {tab === "wa" && <WaPanel isOwner={isOwner} />}
+      {tab === "pdf" && <PdfHeaderPanel isOwner={isOwner} />}
       {tab === "csv" && <CsvMappingPanel isOwner={isOwner} />}
       {tab === "users" && <UsersPanel isOwner={isOwner} />}
     </div>
@@ -222,6 +224,140 @@ function WaPanel({ isOwner }) {
           <Save className="w-4 h-4" /> Simpan
         </button>
       )}
+    </div>
+  );
+}
+
+// ---------------- PDF Header ----------------
+function PdfHeaderPanel({ isOwner }) {
+  const [cfg, setCfg] = useState({ shop_name: "", note: "", logo_data_url: "" });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.get("/settings/pdf_header").then((r) => {
+      setCfg(r.data?.value || { shop_name: "", note: "", logo_data_url: "" });
+      setLoading(false);
+    });
+  }, []);
+
+  const onLogo = async (file) => {
+    if (!file) return;
+    if (!/image\/(png|jpe?g|webp)/i.test(file.type)) return toast.error("Hanya PNG, JPG, atau WEBP");
+    if (file.size > 1_500_000) return toast.error("Ukuran logo maksimal 1,5MB");
+    // Resize to max 400px width using canvas to keep PDF file small
+    const dataUrl = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          const maxW = 400;
+          const scale = Math.min(1, maxW / img.width);
+          const w = Math.round(img.width * scale);
+          const h = Math.round(img.height * scale);
+          const canvas = document.createElement("canvas");
+          canvas.width = w; canvas.height = h;
+          canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL("image/png"));
+        };
+        img.onerror = reject;
+        img.src = reader.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+    setCfg((p) => ({ ...p, logo_data_url: dataUrl }));
+    toast.success("Logo diproses. Klik Simpan untuk menerapkan.");
+  };
+
+  const removeLogo = () => setCfg((p) => ({ ...p, logo_data_url: "" }));
+
+  const save = async () => {
+    await api.put("/settings/pdf_header", { value: cfg });
+    toast.success("Header PDF disimpan");
+  };
+
+  if (loading) return <div className="text-sm text-stone-500">Memuat...</div>;
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="pp-card p-5 space-y-4">
+        <div>
+          <h3 className="font-display font-bold text-lg">Header PDF Ekspor</h3>
+          <p className="text-xs text-stone-500 mt-1">
+            Nama toko, logo, dan catatan singkat yang tercetak di atas setiap PDF segmen.
+          </p>
+        </div>
+
+        <div>
+          <label className="text-xs uppercase tracking-wider font-semibold text-stone-500 block mb-1">Nama Toko</label>
+          <input value={cfg.shop_name} onChange={(e) => setCfg({ ...cfg, shop_name: e.target.value })}
+                 placeholder="mis. Purify Beaute Official" disabled={!isOwner}
+                 className="pp-input rounded-md px-2.5 py-1.5 text-sm w-full" data-testid="pdf-shop-name" />
+        </div>
+
+        <div>
+          <label className="text-xs uppercase tracking-wider font-semibold text-stone-500 block mb-1">Catatan Singkat</label>
+          <textarea value={cfg.note} onChange={(e) => setCfg({ ...cfg, note: e.target.value })}
+                    rows={3} placeholder="mis. Rekap pelanggan periode Februari 2026 · dikirim ke tim admin"
+                    disabled={!isOwner}
+                    className="pp-input rounded-md px-2.5 py-2 text-sm w-full" data-testid="pdf-note" />
+          <div className="text-[10px] text-stone-500 mt-1">Boleh multi-baris. Muncul di bawah nama toko.</div>
+        </div>
+
+        <div>
+          <label className="text-xs uppercase tracking-wider font-semibold text-stone-500 block mb-2 flex items-center gap-1">
+            <ImageIcon className="w-3 h-3" /> Logo Toko
+          </label>
+          <div className="flex items-center gap-3">
+            <label className="pp-btn-secondary rounded-md px-3 py-1.5 text-sm inline-flex items-center gap-2 cursor-pointer"
+                   data-testid="pdf-logo-upload">
+              <UploadIcon className="w-4 h-4" /> {cfg.logo_data_url ? "Ganti Logo" : "Upload Logo"}
+              <input type="file" accept="image/png,image/jpeg,image/webp" hidden disabled={!isOwner}
+                     onChange={(e) => onLogo(e.target.files?.[0])} />
+            </label>
+            {cfg.logo_data_url && isOwner && (
+              <button onClick={removeLogo} className="text-xs text-red-700 hover:underline inline-flex items-center gap-1">
+                <Trash2 className="w-3 h-3" /> Hapus
+              </button>
+            )}
+          </div>
+          <div className="text-[10px] text-stone-500 mt-1">PNG/JPG/WEBP, otomatis di-resize ke max 400px.</div>
+        </div>
+
+        {isOwner && (
+          <button onClick={save} className="pp-btn-primary rounded-md px-4 py-2 text-sm font-semibold inline-flex items-center gap-2"
+                  data-testid="pdf-header-save">
+            <Save className="w-4 h-4" /> Simpan Header PDF
+          </button>
+        )}
+      </div>
+
+      <div className="pp-card p-5">
+        <div className="text-xs uppercase tracking-wider font-semibold text-stone-500 mb-3">Preview Header</div>
+        <div className="border rounded-lg p-4 flex items-start gap-3" style={{ borderColor: "var(--border)", background: "#fff" }}>
+          {cfg.logo_data_url ? (
+            <img src={cfg.logo_data_url} alt="Logo" className="w-20 h-20 object-contain rounded" style={{ background: "#F3EFE6" }} />
+          ) : (
+            <div className="w-20 h-20 rounded flex items-center justify-center text-[10px] text-stone-400 text-center px-1"
+                 style={{ background: "#F3EFE6" }}>
+              (belum ada logo)
+            </div>
+          )}
+          <div className="flex-1 min-w-0">
+            <div className="font-bold text-orange-700" style={{ fontFamily: "Helvetica, sans-serif" }}>
+              {cfg.shop_name || "PetaPembeli"}
+            </div>
+            <div className="text-xs text-stone-600 whitespace-pre-line mt-0.5">
+              {cfg.note || <span className="text-stone-400 italic">(belum ada catatan)</span>}
+            </div>
+            <div className="border-t mt-2 pt-2" style={{ borderColor: "#C2410C" }}>
+              <div className="font-bold text-stone-900 text-sm">Segmen Pelanggan — Semua</div>
+              <div className="text-[10px] text-stone-500">Dibuat 20/02/2026 15:30 · Total 45 pelanggan</div>
+            </div>
+          </div>
+        </div>
+        <div className="text-[10px] text-stone-500 mt-2">Ini pratinjau kasar. Layout final akan tercetak di kertas A4 landscape.</div>
+      </div>
     </div>
   );
 }
