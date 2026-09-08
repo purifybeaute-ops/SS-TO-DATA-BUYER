@@ -1,8 +1,10 @@
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth.jsx";
+import Onboarding from "@/components/Onboarding";
 import {
   LayoutDashboard, Upload as UploadIcon, Users, Map, Sparkles,
-  ClipboardList, Filter, Settings, Info, LogOut, MapPinned, Package, Clock,
+  ClipboardList, Filter, Settings, Info, LogOut, MapPinned, Package, Clock, HelpCircle,
 } from "lucide-react";
 
 const NAV = [
@@ -21,9 +23,17 @@ const NAV = [
 
 export default function Layout() {
   const { user, logout } = useAuth();
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  useEffect(() => {
+    if (!localStorage.getItem("pp_onboarded")) {
+      setShowOnboarding(true);
+    }
+  }, []);
+
   return (
     <div className="min-h-screen flex" style={{ background: "var(--bg)" }}>
-      {/* Sidebar */}
+      {showOnboarding && <Onboarding onClose={() => setShowOnboarding(false)} />}      {/* Sidebar */}
       <aside
         className="hidden lg:flex flex-col w-64 shrink-0 border-r"
         style={{ background: "var(--bg-2)", borderColor: "var(--border)" }}
@@ -78,6 +88,13 @@ export default function Layout() {
             className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg hover:bg-stone-100 text-stone-700"
           >
             <LogOut className="w-4 h-4" /> Keluar
+          </button>
+          <button
+            onClick={() => setShowOnboarding(true)}
+            data-testid="btn-open-onboarding"
+            className="w-full flex items-center gap-2 px-3 py-2 mt-1 text-xs rounded-lg hover:bg-stone-100 text-stone-500"
+          >
+            <HelpCircle className="w-3.5 h-3.5" /> Lihat panduan lagi
           </button>
         </div>
       </aside>

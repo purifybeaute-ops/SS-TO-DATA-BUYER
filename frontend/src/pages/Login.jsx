@@ -7,7 +7,7 @@ import { MapPinned, Loader2 } from "lucide-react";
 export default function Login() {
   const { user, login } = useAuth();
   const nav = useNavigate();
-  const [email, setEmail] = useState("owner@petapembeli.id");
+  const [email, setEmail] = useState("owner@pelangganku.id");
   const [password, setPassword] = useState("owner123");
   const [loading, setLoading] = useState(false);
 
@@ -29,9 +29,9 @@ export default function Login() {
 
   const pickDemo = (kind) => {
     if (kind === "owner") {
-      setEmail("owner@petapembeli.id"); setPassword("owner123");
+      setEmail("owner@pelangganku.id"); setPassword("owner123");
     } else {
-      setEmail("operator@petapembeli.id"); setPassword("operator123");
+      setEmail("operator@pelangganku.id"); setPassword("operator123");
     }
   };
 

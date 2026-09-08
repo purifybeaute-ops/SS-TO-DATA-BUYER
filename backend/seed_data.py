@@ -152,20 +152,23 @@ DEMO_NOTES = {
 async def seed_all(db):
     now = datetime.now(timezone.utc).isoformat()
 
+    # 0. One-time migration: replace old @petapembeli.id accounts with @pelangganku.id
+    await db.users.delete_many({"email": {"$in": ["owner@petapembeli.id", "operator@petapembeli.id"]}})
+
     # 1. Users
-    if not await db.users.find_one({"email": "owner@petapembeli.id"}):
+    if not await db.users.find_one({"email": "owner@pelangganku.id"}):
         await db.users.insert_one({
             "id": str(uuid.uuid4()),
-            "email": "owner@petapembeli.id",
+            "email": "owner@pelangganku.id",
             "password_hash": hash_password("owner123"),
             "role": "owner",
             "name": "Owner Toko",
             "created_at": now,
         })
-    if not await db.users.find_one({"email": "operator@petapembeli.id"}):
+    if not await db.users.find_one({"email": "operator@pelangganku.id"}):
         await db.users.insert_one({
             "id": str(uuid.uuid4()),
-            "email": "operator@petapembeli.id",
+            "email": "operator@pelangganku.id",
             "password_hash": hash_password("operator123"),
             "role": "operator",
             "name": "Operator",
