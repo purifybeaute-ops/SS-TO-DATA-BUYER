@@ -47,23 +47,42 @@ export default function SegmenExport() {
   useEffect(() => { runPreview(); }, [filters]);
 
   const exportCsv = async () => {
-    const body = {
-      kota: filters.kota || null, provinsi: filters.provinsi || null,
-      repeat: filters.repeat === "yes" ? true : filters.repeat === "no" ? false : null,
-      tag_id: filters.tag_id || null, creator: filters.creator || null,
-      date_from: filters.date_from || null, date_to: filters.date_to || null,
-    };
+    const body = buildBody();
     const token = localStorage.getItem("pp_token");
     const resp = await fetch(`${API}/segments/export/csv`, {
       method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify(body),
     });
     const blob = await resp.blob();
+    triggerDownload(blob, "segmen.csv");
+    toast.success("CSV segmen berhasil diunduh");
+  };
+
+  const exportPdf = async () => {
+    const body = buildBody();
+    const token = localStorage.getItem("pp_token");
+    const resp = await fetch(`${API}/segments/export/pdf`, {
+      method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify(body),
+    });
+    if (!resp.ok) return toast.error("Gagal generate PDF");
+    const blob = await resp.blob();
+    triggerDownload(blob, "segmen.pdf");
+    toast.success("PDF segmen berhasil diunduh");
+  };
+
+  const buildBody = () => ({
+    kota: filters.kota || null, provinsi: filters.provinsi || null,
+    repeat: filters.repeat === "yes" ? true : filters.repeat === "no" ? false : null,
+    tag_id: filters.tag_id || null, creator: filters.creator || null,
+    date_from: filters.date_from || null, date_to: filters.date_to || null,
+  });
+
+  const triggerDownload = (blob, filename) => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url; a.download = "segmen.csv"; a.click();
+    a.href = url; a.download = filename; a.click();
     URL.revokeObjectURL(url);
-    toast.success("CSV segmen berhasil diunduh");
   };
 
   const copyList = () => {
@@ -187,6 +206,10 @@ export default function SegmenExport() {
             <button onClick={exportCsv} data-testid="btn-export-csv"
                     className="pp-btn-secondary rounded-lg px-3 py-2 text-sm font-medium inline-flex items-center gap-2">
               <Download className="w-4 h-4" /> Export CSV
+            </button>
+            <button onClick={exportPdf} data-testid="btn-export-pdf"
+                    className="pp-btn-secondary rounded-lg px-3 py-2 text-sm font-medium inline-flex items-center gap-2">
+              <Download className="w-4 h-4" /> Export PDF
             </button>
             <button onClick={() => setShowWaList(true)} data-testid="btn-export-wa-list"
                     className="pp-btn-wa rounded-lg px-3 py-2 text-sm font-medium inline-flex items-center gap-2">

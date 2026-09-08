@@ -564,3 +564,146 @@ class TestSegments:
         first_line = content.splitlines()[0]
         for h in ["recipient_name", "phone", "kota", "provinsi", "tags"]:
             assert h in first_line
+
+
+
+# --------------------------------------------------------------------------- Vision ZIP job (NEW - iteration 3)
+class TestVisionZip:
+    def test_extract_zip_non_zip_400(self, owner_token):
+        headers = {"Authorization": f"Bearer {owner_token}"}
+        files = {"file": ("notzip.txt", b"not a zip", "text/plain")}
+        r = requests.post(f"{BASE_URL}/api/vision/extract-zip",
+                          headers=headers, files=files, timeout=15)
+        assert r.status_code == 400
+        assert "zip" in r.json().get("detail", "").lower()
+
+    def test_get_vision_job_nonexistent_404(self, owner_token):
+        r = requests.get(f"{BASE_URL}/api/vision/jobs/nonexistent-abc-xyz",
+                         headers=_owner_headers(owner_token), timeout=15)
+        assert r.status_code == 404
+        assert "tidak ditemukan" in r.json().get("detail", "").lower()
+
+    def test_extract_zip_flow(self, owner_token):
+        # Download sample image
+        img = requests.get(SAMPLE_IMAGE_URL, timeout=60)
+        assert img.status_code == 200
+        img_bytes = img.content
+        # Build ZIP with 2 copies
+        zbuf = io.BytesIO()
+        import zipfile as zf
+        with zf.ZipFile(zbuf, "w") as zip_out:
+            zip_out.writestr("shot1.webp", img_bytes)
+            zip_out.writestr("shot2.webp", img_bytes)
+        zbuf.seek(0)
+
+        headers = {"Authorization": f"Bearer {owner_token}"}
+        files = {"file": ("shots.zip", zbuf.getvalue(), "application/zip")}
+        r = requests.post(f"{BASE_URL}/api/vision/extract-zip",
+                          headers=headers, files=files, timeout=30)
+        assert r.status_code == 200, r.text
+        data = r.json()
+        assert data["status"] == "queued"
+        job_id = data["job_id"]
+        assert isinstance(job_id, str) and len(job_id) > 10
+
+        # Poll up to 120s
+        final = None
+        for _ in range(60):
+            time.sleep(2)
+            j = requests.get(f"{BASE_URL}/api/vision/jobs/{job_id}",
+                             headers=_owner_headers(owner_token), timeout=15)
+            assert j.status_code == 200
+            jd = j.json()
+            if jd["status"] in ("done", "failed"):
+                final = jd
+                break
+        assert final is not None, "job did not finish in 120s"
+        assert final["status"] == "done", f"job failed: {final.get('error')}"
+        assert final["total"] == 2
+        assert final["processed"] == 2
+        results = final.get("results") or []
+        assert len(results) == 2
+        for item in results:
+            assert item.get("error") is None, f"item error: {item.get('error')}"
+            ex = item.get("extracted") or {}
+            assert ex.get("recipient_name"), f"no recipient in {item}"
+            assert ex.get("phone_normalized"), f"no phone_normalized in {item}"
+
+
+# --------------------------------------------------------------------------- Segment PDF export (NEW)
+class TestSegmentPDF:
+    def test_export_pdf_empty_filter(self, owner_token):
+        r = requests.post(f"{BASE_URL}/api/segments/export/pdf",
+                          headers=_owner_headers(owner_token),
+                          json={}, timeout=30)
+        assert r.status_code == 200, r.text
+        ct = r.headers.get("content-type", "")
+        assert "application/pdf" in ct, f"content-type not pdf: {ct}"
+        cd = r.headers.get("content-disposition", "")
+        assert "segmen.pdf" in cd
+        assert r.content[:4] == b"%PDF", f"bad magic: {r.content[:8]}"
+        assert len(r.content) > 2048, f"pdf too small: {len(r.content)}"
+
+    def test_export_pdf_with_filter(self, owner_token):
+        r = requests.post(f"{BASE_URL}/api/segments/export/pdf",
+                          headers=_owner_headers(owner_token),
+                          json={"repeat": True}, timeout=30)
+        assert r.status_code == 200
+        assert "application/pdf" in r.headers.get("content-type", "")
+        assert r.content[:4] == b"%PDF"
+
+    def test_export_pdf_operator_allowed(self, operator_token):
+        r = requests.post(f"{BASE_URL}/api/segments/export/pdf",
+                          headers=_owner_headers(operator_token),
+                          json={}, timeout=30)
+        assert r.status_code == 200
+        assert r.content[:4] == b"%PDF"
+
+
+# --------------------------------------------------------------------------- Reminders (NEW)
+class TestReminders:
+    def test_reminders_structure(self, owner_token):
+        r = requests.get(f"{BASE_URL}/api/reminders",
+                         headers=_owner_headers(owner_token), timeout=20)
+        assert r.status_code == 200, r.text
+        d = r.json()
+        assert "counts" in d and "buckets" in d
+        for k in ("days_30_59", "days_60_89", "days_90_plus"):
+            assert k in d["counts"]
+            assert k in d["buckets"]
+            assert isinstance(d["buckets"][k], list)
+            assert d["counts"][k] == len(d["buckets"][k])
+        # Total >= some seeded reminder-worthy customers
+        total = sum(d["counts"].values())
+        assert total > 0, "expected some reminder-worthy seeded customers"
+        # 60-89 bucket should have >0 per seed spread
+        assert d["counts"]["days_60_89"] > 0, f"days_60_89 empty: {d['counts']}"
+
+    def test_reminders_days_since_last_order(self, owner_token):
+        r = requests.get(f"{BASE_URL}/api/reminders",
+                         headers=_owner_headers(owner_token), timeout=20)
+        d = r.json()
+        for bucket_name, customers in d["buckets"].items():
+            for c in customers:
+                dso = c.get("days_since_last_order")
+                assert isinstance(dso, int), f"days_since_last_order not int: {dso}"
+                if bucket_name == "days_30_59":
+                    assert 30 <= dso < 60, f"wrong bucket: {dso} in 30_59"
+                elif bucket_name == "days_60_89":
+                    assert 60 <= dso < 90, f"wrong bucket: {dso} in 60_89"
+                elif bucket_name == "days_90_plus":
+                    assert dso >= 90, f"wrong bucket: {dso} in 90+"
+
+    def test_reminders_requires_auth(self):
+        r = requests.get(f"{BASE_URL}/api/reminders", timeout=15)
+        assert r.status_code in (401, 403)
+
+    def test_customers_id_not_shadowed(self, owner_token):
+        # regression: /customers/{cid} should still work; /reminders shouldn't shadow
+        rows = requests.get(f"{BASE_URL}/api/customers",
+                            headers=_owner_headers(owner_token), timeout=15).json()
+        cid = rows[0]["id"]
+        r = requests.get(f"{BASE_URL}/api/customers/{cid}",
+                         headers=_owner_headers(owner_token), timeout=15)
+        assert r.status_code == 200
+        assert r.json()["customer"]["id"] == cid

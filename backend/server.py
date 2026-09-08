@@ -1,6 +1,6 @@
 """PetaPembeli backend — customer database for Indonesian TikTok Shop sellers."""
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, UploadFile, File, Query, Body
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, Response
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -10,9 +10,11 @@ import csv
 import re
 import uuid
 import base64
+import asyncio
+import zipfile
 import logging
 from pathlib import Path
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, EmailStr, Field
 from collections import Counter, defaultdict
@@ -813,6 +815,201 @@ async def segment_export_csv(body: SegmentFilter, user=Depends(get_current_user)
         media_type="text/csv",
         headers={"Content-Disposition": 'attachment; filename="segmen.csv"'},
     )
+
+
+# ---------------------------------------------------------------------------
+# Bulk ZIP import — background task
+# ---------------------------------------------------------------------------
+async def _process_zip_job(job_id: str, zip_bytes: bytes):
+    try:
+        zf = zipfile.ZipFile(io.BytesIO(zip_bytes))
+        image_names = [
+            n for n in zf.namelist()
+            if not n.startswith("__MACOSX")
+            and not n.endswith("/")
+            and n.lower().rsplit(".", 1)[-1] in {"png", "jpg", "jpeg", "webp"}
+        ]
+        await db.vision_jobs.update_one(
+            {"id": job_id},
+            {"$set": {"total": len(image_names), "status": "running"}},
+        )
+        results: List[Dict[str, Any]] = []
+        for idx, name in enumerate(image_names):
+            try:
+                raw = zf.read(name)
+                b64 = base64.b64encode(raw).decode()
+                data = await extract_from_image(b64)
+                results.append({"filename": name, "extracted": data, "error": None})
+            except Exception as e:
+                results.append({"filename": name, "extracted": None, "error": str(e)[:200]})
+            await db.vision_jobs.update_one(
+                {"id": job_id},
+                {"$set": {"processed": idx + 1, "results": results, "updated_at": now_iso()}},
+            )
+        await db.vision_jobs.update_one(
+            {"id": job_id},
+            {"$set": {"status": "done", "updated_at": now_iso()}},
+        )
+    except Exception as e:
+        logger.exception("Zip job failed")
+        await db.vision_jobs.update_one(
+            {"id": job_id},
+            {"$set": {"status": "failed", "error": str(e)[:500], "updated_at": now_iso()}},
+        )
+
+
+@api.post("/vision/extract-zip")
+async def vision_extract_zip(file: UploadFile = File(...), user=Depends(get_current_user)):
+    if not (file.filename or "").lower().endswith(".zip"):
+        raise HTTPException(status_code=400, detail="File harus berformat .zip")
+    content = await file.read()
+    if len(content) > 200 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Ukuran ZIP maksimal 200MB")
+    job_id = str(uuid.uuid4())
+    now = now_iso()
+    await db.vision_jobs.insert_one({
+        "id": job_id,
+        "status": "queued",
+        "filename": file.filename,
+        "total": 0,
+        "processed": 0,
+        "results": [],
+        "error": None,
+        "created_at": now,
+        "updated_at": now,
+        "user_id": user["sub"],
+    })
+    asyncio.create_task(_process_zip_job(job_id, content))
+    return {"job_id": job_id, "status": "queued"}
+
+
+@api.get("/vision/jobs/{job_id}")
+async def get_vision_job(job_id: str, user=Depends(get_current_user)):
+    job = await db.vision_jobs.find_one({"id": job_id}, {"_id": 0})
+    if not job:
+        raise HTTPException(status_code=404, detail="Job tidak ditemukan")
+    return job
+
+
+# ---------------------------------------------------------------------------
+# PDF export — segment
+# ---------------------------------------------------------------------------
+def _build_segment_pdf(rows: List[dict], tag_map: Dict[str, dict], title: str) -> bytes:
+    from reportlab.lib.pagesizes import A4, landscape
+    from reportlab.lib import colors
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.units import mm
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buf, pagesize=landscape(A4),
+        leftMargin=12 * mm, rightMargin=12 * mm,
+        topMargin=12 * mm, bottomMargin=12 * mm,
+    )
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle("t", parent=styles["Heading1"], textColor=colors.HexColor("#1C1917"),
+                                 fontName="Helvetica-Bold", fontSize=18, leading=22, spaceAfter=4)
+    sub_style = ParagraphStyle("s", parent=styles["Normal"], textColor=colors.HexColor("#78716C"),
+                               fontSize=9, leading=12, spaceAfter=10)
+
+    elements = [
+        Paragraph(title, title_style),
+        Paragraph(f"PetaPembeli · Dibuat {datetime.now().strftime('%d/%m/%Y %H:%M')} · Total {len(rows)} pelanggan", sub_style),
+    ]
+
+    header = ["No", "Nama", "Username", "Telepon", "Kota", "Provinsi", "Tag", "Order"]
+    data: List[List[Any]] = [header]
+    for i, r in enumerate(rows, 1):
+        tags = ", ".join([tag_map[t]["name"] for t in r.get("tag_ids", []) if t in tag_map])
+        data.append([
+            i,
+            r.get("recipient_name", "-") or "-",
+            r.get("tiktok_username", "-") or "-",
+            r.get("phone", "-") or "-",
+            r.get("kota", "-") or "-",
+            r.get("provinsi", "-") or "-",
+            tags or "-",
+            r.get("order_count", 0),
+        ])
+    col_widths = [12*mm, 45*mm, 32*mm, 32*mm, 42*mm, 42*mm, 45*mm, 15*mm]
+    table = Table(data, colWidths=col_widths, repeatRows=1)
+    table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#C2410C")),
+        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, 0), 9),
+        ("BOTTOMPADDING", (0, 0), (-1, 0), 6),
+        ("TOPPADDING", (0, 0), (-1, 0), 6),
+        ("FONTSIZE", (0, 1), (-1, -1), 8),
+        ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("TEXTCOLOR", (0, 1), (-1, -1), colors.HexColor("#1C1917")),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.HexColor("#FAF7F2"), colors.white]),
+        ("LINEBELOW", (0, 0), (-1, 0), 0.6, colors.HexColor("#9A3412")),
+        ("GRID", (0, 1), (-1, -1), 0.25, colors.HexColor("#E5DEC9")),
+        ("LEFTPADDING", (0, 0), (-1, -1), 5),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 5),
+    ]))
+    elements.append(table)
+    doc.build(elements)
+    return buf.getvalue()
+
+
+@api.post("/segments/export/pdf")
+async def segment_export_pdf(body: SegmentFilter, user=Depends(get_current_user)):
+    rows = await _query_segment(body)
+    tags = await db.tags.find({}, {"_id": 0}).to_list(200)
+    tag_map = {t["id"]: t for t in tags}
+    parts = []
+    if body.kota: parts.append(body.kota)
+    if body.provinsi: parts.append(body.provinsi)
+    if body.repeat is True: parts.append("Pembeli Berulang")
+    if body.tag_id and body.tag_id in tag_map: parts.append(f"Tag {tag_map[body.tag_id]['name']}")
+    title = f"Segmen Pelanggan — {', '.join(parts) if parts else 'Semua'}"
+    pdf_bytes = _build_segment_pdf(rows, tag_map, title)
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": 'attachment; filename="segmen.pdf"'},
+    )
+
+
+# ---------------------------------------------------------------------------
+# Reminder — customers inactive for 30/60/90 days
+# ---------------------------------------------------------------------------
+@api.get("/reminders")
+async def customer_reminders(user=Depends(get_current_user)):
+    now = datetime.now(timezone.utc)
+    b30 = (now - timedelta(days=30)).isoformat()
+    b60 = (now - timedelta(days=60)).isoformat()
+    b90 = (now - timedelta(days=90)).isoformat()
+
+    buckets: Dict[str, List[dict]] = {"days_30_59": [], "days_60_89": [], "days_90_plus": []}
+    async for c in db.customers.find({"last_seen": {"$lt": b30}}, {"_id": 0}).sort("last_seen", 1):
+        ls = c.get("last_seen") or ""
+        if ls < b90:
+            buckets["days_90_plus"].append(c)
+        elif ls < b60:
+            buckets["days_60_89"].append(c)
+        else:
+            buckets["days_30_59"].append(c)
+
+    def _days_since(iso_str):
+        try:
+            d = datetime.fromisoformat(iso_str.replace("Z", "+00:00"))
+            return (now - d).days
+        except Exception:
+            return None
+
+    for b in buckets.values():
+        for c in b:
+            c["days_since_last_order"] = _days_since(c.get("last_seen", ""))
+
+    return {
+        "counts": {k: len(v) for k, v in buckets.items()},
+        "buckets": buckets,
+    }
 
 
 # ---------------------------------------------------------------------------

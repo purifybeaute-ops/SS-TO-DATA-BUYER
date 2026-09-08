@@ -43,6 +43,12 @@ Polish, seed ~40 demo customers, "Tentang" page.
 - ✅ Verified: all key REST endpoints (dashboard, customers, tags, creators, regions) return 200 OK
 - ✅ Login flow, dashboard, and map navigation confirmed via backend logs
 - ✅ **Feb 2026 iteration 2**: Bulk Tagging (POST /api/customers/bulk), Broadcast Scheduler (frontend queue with 5-10s random delay), Product Revenue View (GET /api/analytics/products + new /produk page). CSV import now saves SKU Subtotal After Discount and uses composite (order_id, variation) key so multi-SKU orders are preserved.
+- ✅ **Feb 2026 iteration 3**: Bulk ZIP Import (POST /api/vision/extract-zip + background asyncio task + GET /api/vision/jobs/{id} polling). Segment PDF Export (POST /api/segments/export/pdf using reportlab, landscape A4). Reminder page (/reminder) with GET /api/reminders bucketing 30/60/90+ days inactive customers with WA quick-chat.
+
+## Test Coverage
+- Iteration 1: 29/29 pass
+- Iteration 2: 36/36 pass (+7 bulk/products/CSV composite)
+- Iteration 3: 46/46 pass (+10 ZIP/PDF/reminders)
 
 ## Prioritized Backlog
 - P1: Bulk tag/note assignment from customer table

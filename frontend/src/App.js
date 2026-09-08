@@ -13,6 +13,7 @@ import SegmenExport from "@/pages/SegmenExport";
 import Pengaturan from "@/pages/Pengaturan";
 import Tentang from "@/pages/Tentang";
 import ProductRevenue from "@/pages/ProductRevenue";
+import Reminder from "@/pages/Reminder";
 import "@/App.css";
 
 function Protected({ children }) {
@@ -52,6 +53,7 @@ function App() {
               <Route path="perlu-ss" element={<PerluDiSS />} />
               <Route path="segmen" element={<SegmenExport />} />
               <Route path="produk" element={<ProductRevenue />} />
+              <Route path="reminder" element={<Reminder />} />
               <Route path="pengaturan" element={<Pengaturan />} />
               <Route path="tentang" element={<Tentang />} />
             </Route>
