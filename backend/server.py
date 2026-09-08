@@ -1,4 +1,4 @@
-"""PetaPembeli backend — customer database for Indonesian TikTok Shop sellers."""
+"""PelangganKu backend — customer database for Indonesian TikTok Shop sellers."""
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, UploadFile, File, Query, Body
 from fastapi.responses import StreamingResponse, Response
 from dotenv import load_dotenv
@@ -36,7 +36,7 @@ mongo_url = os.environ["MONGO_URL"]
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ["DB_NAME"]]
 
-app = FastAPI(title="PetaPembeli API")
+app = FastAPI(title="PelangganKu API")
 api = APIRouter(prefix="/api")
 logger = logging.getLogger("petapembeli")
 logging.basicConfig(level=logging.INFO)
@@ -931,7 +931,7 @@ def _build_segment_pdf(rows: List[dict], tag_map: Dict[str, dict], title: str, h
     if shop_note:
         header_right.append(Paragraph(shop_note.replace("\n", "<br/>"), note_style))
     if not header_right:
-        header_right.append(Paragraph("PetaPembeli", shop_style))
+        header_right.append(Paragraph("PelangganKu", shop_style))
 
     logo_img = None
     if logo_data_url and "," in logo_data_url:

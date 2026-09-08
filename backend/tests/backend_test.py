@@ -1,4 +1,4 @@
-"""PetaPembeli backend end-to-end API tests."""
+"""PelangganKu backend end-to-end API tests."""
 import os
 import io
 import base64

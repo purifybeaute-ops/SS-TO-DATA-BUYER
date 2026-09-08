@@ -345,7 +345,7 @@ function PdfHeaderPanel({ isOwner }) {
           )}
           <div className="flex-1 min-w-0">
             <div className="font-bold text-orange-700" style={{ fontFamily: "Helvetica, sans-serif" }}>
-              {cfg.shop_name || "PetaPembeli"}
+              {cfg.shop_name || "PelangganKu"}
             </div>
             <div className="text-xs text-stone-600 whitespace-pre-line mt-0.5">
               {cfg.note || <span className="text-stone-400 italic">(belum ada catatan)</span>}

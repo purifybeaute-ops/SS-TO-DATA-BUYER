@@ -49,7 +49,7 @@ export default function Login() {
             Ubah screenshot pesanan jadi <span className="text-orange-700">database pelanggan</span> Anda sendiri.
           </h1>
           <p className="text-stone-700 text-base leading-relaxed">
-            TikTok Shop tidak memberi Anda akses data pembeli. PetaPembeli membaca screenshot,
+            TikTok Shop tidak memberi Anda akses data pembeli. PelangganKu membaca screenshot,
             merapikan alamat, mendeteksi pembeli berulang, dan memetakan kota mereka — semua di satu tempat.
           </p>
           <div className="mt-8 flex items-center gap-3 text-sm text-stone-700">
@@ -69,7 +69,7 @@ export default function Login() {
             <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: "var(--accent)" }}>
               <MapPinned className="w-5 h-5 text-white" />
             </div>
-            <div className="font-display font-extrabold text-xl">PetaPembeli</div>
+            <div className="font-display font-extrabold text-xl">PelangganKu</div>
           </div>
 
           <div>

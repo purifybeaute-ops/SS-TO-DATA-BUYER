@@ -6,13 +6,13 @@ export default function Tentang() {
       <div>
         <div className="text-xs uppercase tracking-wider text-stone-500 mb-1">Tentang</div>
         <h1 className="font-display text-3xl sm:text-4xl font-extrabold tracking-tight text-stone-900">
-          PetaPembeli
+          PelangganKu
         </h1>
       </div>
 
       <div className="pp-card p-6 space-y-4">
         <p className="text-stone-700 leading-relaxed">
-          PetaPembeli adalah alat sederhana untuk seller TikTok Shop Indonesia yang <b>tidak diberi akses ke data pembeli mereka sendiri</b>.
+          PelangganKu adalah alat sederhana untuk seller TikTok Shop Indonesia yang <b>tidak diberi akses ke data pembeli mereka sendiri</b>.
           Aplikasi ini mengubah screenshot halaman detail pesanan menjadi database pelanggan yang bisa Anda cari, filter, dan hubungi ulang lewat WhatsApp.
         </p>
         <p className="text-stone-700 leading-relaxed">

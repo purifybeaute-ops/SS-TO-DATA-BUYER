@@ -1,4 +1,4 @@
-"""JWT auth utilities for PetaPembeli."""
+"""JWT auth utilities for PelangganKu."""
 import os
 import bcrypt
 import jwt

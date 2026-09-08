@@ -36,7 +36,7 @@ export default function Layout() {
             </div>
             <div>
               <div className="font-display font-extrabold text-lg tracking-tight text-stone-900">
-                PetaPembeli
+                PelangganKu
               </div>
               <div className="text-[10px] uppercase tracking-wider text-stone-500">
                 TikTok Shop CRM
@@ -88,7 +88,7 @@ export default function Layout() {
         <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "var(--accent)" }}>
           <MapPinned className="w-4 h-4 text-white" />
         </div>
-        <div className="font-display font-bold text-base">PetaPembeli</div>
+        <div className="font-display font-bold text-base">PelangganKu</div>
         <button onClick={logout} className="ml-auto text-xs text-stone-600 flex items-center gap-1"
                 data-testid="btn-logout-mobile">
           <LogOut className="w-3.5 h-3.5" /> Keluar
