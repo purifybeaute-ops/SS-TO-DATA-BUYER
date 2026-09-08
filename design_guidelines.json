@@ -1,0 +1,250 @@
+{
+  "app_identity": {
+    "name": "PetaPembeli",
+    "tagline": "Database Pelanggan & Analisis Geografis TikTok Shop Indonesia",
+    "target_audience": "Indonesian TikTok Shop sellers, e-commerce operators, and customer growth teams",
+    "emotional_archetype": "ARCHETYPE 1: ORGANIC & EARTHY (Warm, Grounded, Tactile, High Trust)",
+    "design_persona": "E1 Anti-AI Designer - Fusion over Imitation, Tactile Warmth, Dense Utility"
+  },
+  "theme_and_colors": {
+    "theme_mode": "Clean, Warm, Modern Light Mode (with optional dark mode contrast accents)",
+    "color_palette": {
+      "background_primary": "#FAF7F2",
+      "background_secondary": "#F3EFE6",
+      "surface_card": "#FFFFFF",
+      "surface_muted": "#EDE8DE",
+      "border_subtle": "#E5DEC9",
+      "border_bold": "#D4CBB5",
+      "text_primary": "#1C1917",
+      "text_secondary": "#57534E",
+      "text_muted": "#78716C",
+      "accent_terracotta": "#C2410C",
+      "accent_terracotta_hover": "#9A3412",
+      "accent_terracotta_light": "#FFEDD5",
+      "accent_amber": "#D97706",
+      "accent_rust": "#B45309",
+      "whatsapp_green": "#15803D",
+      "whatsapp_green_light": "#DCFCE7",
+      "status_success": "#166534",
+      "status_warning": "#854D0E",
+      "status_error": "#991B1B",
+      "forbidden_colors": [
+        "#7351B7",
+        "#1B93A4",
+        "purple-gradient",
+        "violet-gradient",
+        "pure-black-#000000"
+      ]
+    },
+    "color_usage_rules": [
+      "Use #FAF7F2 warm off-white for main page backgrounds to eliminate clinical digital glare.",
+      "Use warm Terracotta (#C2410C) strictly for primary actions, highlight badges, and critical key visual anchors.",
+      "Use WhatsApp Green (#15803D) for click-to-chat links, WA broadcasting buttons, and customer phone status indicators.",
+      "NO purple, violet, or cyan gradients anywhere in the application.",
+      "Ensure all text meets APCA high-contrast standards against off-white and surface cards."
+    ]
+  },
+  "typography": {
+    "font_family_display": "Sora, 'Plus Jakarta Sans', sans-serif",
+    "font_family_body": "'Plus Jakarta Sans', sans-serif",
+    "font_family_mono": "'JetBrains Mono', monospace",
+    "font_pairing_strategy": "Editorial Warm Utility: Sora for distinctive display titles + Plus Jakarta Sans for crisp, localized Indonesian UI text",
+    "hierarchy": {
+      "h1_hero": "text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-stone-900 leading-tight",
+      "h2_section": "text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-stone-900",
+      "h3_subsection": "text-lg sm:text-xl font-semibold text-stone-800",
+      "body_regular": "text-sm sm:text-base font-normal text-stone-700 leading-relaxed",
+      "caption_label": "text-xs font-medium uppercase tracking-wider text-stone-500",
+      "table_data": "text-xs sm:text-sm font-normal text-stone-800 font-mono-numeric"
+    },
+    "localization_rules": {
+      "currency_format": "Rupiah (e.g. Rp 1.250.000)",
+      "date_format": "Indonesian long/short date (e.g. 18 Juli 2026 or 18/07/2026)",
+      "language": "All UI text, labels, badges, tooltips, and empty states MUST be in Bahasa Indonesia"
+    }
+  },
+  "layout_and_spacing": {
+    "grid_strategy": "The Bento Protocol & Dual Density Grid",
+    "desktop_density": "High density table views with 8px-12px padding for dense customer & order review tables",
+    "mobile_density": "Generous touch targets (min 44px) and drag-and-drop upload focus",
+    "container_padding": "p-4 sm:p-6 lg:p-8",
+    "card_borders": "1px solid #E5DEC9 with subtle ambient shadow shadow-[0_2px_12px_rgba(28,25,23,0.04)]",
+    "card_radius": "rounded-xl"
+  },
+  "key_screens_guidelines": {
+    "login_onboarding": {
+      "title": "Masuk Akun Seller",
+      "elements": [
+        "Brand hero badge with PetaPembeli logo & TikTok Shop seller illustration",
+        "Form input for WhatsApp number / Email and password",
+        "Quick demo credential selector button for instant testing",
+        "Warm terracotta CTA button with loading state spinner"
+      ]
+    },
+    "dashboard_overview": {
+      "title": "Ikhtisar Performa Pelanggan",
+      "stat_tiles": [
+        "Total Pelanggan Unik (Total Unique Customers)",
+        "Total Pesanan Ter-Ekstraksi (Total Extracted Orders)",
+        "Rasio Pembeli Setia / Repeat Rate (%)",
+        "Total Omset Terdata (Rp)",
+        "Provinsi Teratas (Top Province)"
+      ],
+      "visual_components": [
+        "Mini Indonesia heat distribution summary",
+        "Aktivitas Ekstraksi Terakhir (Recent Screenshot Uploads feed)",
+        "Quick Action Cards: Upload Screenshot Baru, Export List WA, Lihat Peta"
+      ]
+    },
+    "upload_and_ekstraksi": {
+      "title": "Upload & Ekstraksi Screenshot AI",
+      "upload_zone": {
+        "style": "Dashed terracotta border border-dashed border-orange-300 bg-orange-50/40 hover:bg-orange-50 p-8 sm:p-12 text-center rounded-2xl transition-all cursor-pointer",
+        "text": "Tarik & Lepas Screenshot Pesanan TikTok Shop di Sini, atau Klik untuk Memilih File",
+        "formats": "Mendukung PNG, JPG, WEBP (Bisa Multiple File sekaligus)"
+      },
+      "ai_vision_status": "Interactive progress bar with stage indicators: 'Membaca Gambar...' -> 'Ekstraksi Teks AI...' -> 'Pencocokan Format & Telepon...'",
+      "quick_correct_table": "Editable inline review table allowing instant correction of Buyer Name, Phone Number, Full Address, City, Province, Product Name, and Total Price before saving to database."
+    },
+    "database_pelanggan": {
+      "title": "Database Pelanggan",
+      "features": [
+        "Search bar with live filtering by name, phone, city, or tag",
+        "Deduplication phone badge (Identifikasi otomatis nomor WA sama + indikator Pembeli Setia)",
+        "Click-to-chat WhatsApp button (`https://wa.me/62...`) with pre-filled message template button",
+        "Tag pills system with customizable colors: VIP, Artis, Influencer, Reseller, Langganan, Bermasalah",
+        "Batch actions: Pilih Banyak -> Export CSV / Export List Broadcast WA / Tambah Tag"
+      ]
+    },
+    "peta_dan_analisis_lokasi": {
+      "title": "Peta & Analisis Lokasi Pembeli",
+      "echarts_map": {
+        "type": "Indonesia Choropleth Map (38 Provinces)",
+        "color_range": ["#FFEDD5", "#FDBA74", "#FB923C", "#E05206", "#9A3412"],
+        "interactivity": "Hover tooltip displaying Province Name, Total Customers, Order Count, and Total Spending (Rp). Click province to drill-down into Cities/Regencies bar chart."
+      },
+      "ranked_charts": "Top 10 Ranked Horizontal Bar Charts for Provinces and Top 10 Cities with highest buyer concentration."
+    },
+    "analisis_creator": {
+      "title": "Analisis Creator & Affiliate",
+      "components": [
+        "Creator performance summary cards (Top Affiliate by Revenue, Top Affiliate by Conversion Volume)",
+        "Interactive Creator Table with niche tags (Fashion, Beauty, Skincare, Kuliner, Electronic, Lifestyle)",
+        "Revenue attribution chart and repeat order contribution percentage"
+      ]
+    },
+    "perlu_di_ss": {
+      "title": "Perlu Di-SS (Gap Analysis)",
+      "concept": "Identifies orders present in TikTok Shop CSV export that DO NOT YET have screenshot visual data captured by AI vision.",
+      "features": [
+        "Gap count summary banner ('24 Pesanan Belum Memiliki Details Screenshot')",
+        "Filterable list by order date, buyer name, and order value",
+        "Quick upload button targeted directly to missing order IDs"
+      ]
+    },
+    "segmen_dan_export": {
+      "title": "Segmen & Export Data",
+      "filters": [
+        "Rentang Total Belanja (Rp Min - Max)",
+        "Jumlah Pesanan (Pembeli Baru vs Repeat Buyer 2+ kali)",
+        "Lokasi (Pilih Provinsi / Kota)",
+        "Kategori Tag (VIP, Reseller, dll)",
+        "Afiliasi Creator terkait"
+      ],
+      "export_options": [
+        "Export CSV Lengkap (Format Excel / Google Sheets)",
+        "Export Format Nomor Kontak WhatsApp (.vcf / CSV Broadcast)",
+        "Salin Teks Daftar Nomor WA (Quick Copy ke clipboard)"
+      ]
+    },
+    "pengaturan": {
+      "title": "Pengaturan Sistem",
+      "tabs": [
+        "Aturan Normalisasi Wilayah (Auto-correct penulisan kota/provinsi typo)",
+        "Manajemen Tag & Warna (Ubah tag VIP, Artis, Bermasalah)",
+        "Niche Creator Affiliate",
+        "Template Pesan WhatsApp (Pengaturan tag dinamis {nama}, {kota}, {produk_terakhir})"
+      ]
+    },
+    "tentang": {
+      "title": "Tentang PetaPembeli",
+      "content": "Informasi versi aplikasi, petunjuk penggunaan ekstraksi AI, tips keamanan data seller TikTok Shop, dan kontak dukungan teknis."
+    },
+    "customer_detail_drawer": {
+      "title": "Detail Pelanggan & Riwayat",
+      "features": [
+        "Customer profile header with total lifetime spend and order count",
+        "Custom tags selector with instant toggle",
+        "Catatan Khusus (Seller notes textarea with timestamped history)",
+        "Timeline pesanan ter-ekstraksi dengan preview thumbnail screenshot"
+      ]
+    }
+  },
+  "component_guidelines": {
+    "buttons": "Pill or clean 8px rounded buttons. Primary: bg-orange-700 hover:bg-orange-800 text-white font-medium shadow-sm transition-all. Secondary: bg-stone-100 hover:bg-stone-200 text-stone-800 border border-stone-300.",
+    "badges": "Custom pill badges with subtle backgrounds (e.g. VIP: bg-amber-100 text-amber-800 border-amber-300; Pembeli Setia: bg-emerald-100 text-emerald-800 border-emerald-300; Bermasalah: bg-rose-100 text-rose-800 border-rose-300).",
+    "tables": "Dense, crisp tabular display with striped/hover states, sticky headers, text-stone-900 typography, explicit column widths, and pagination/page size selector.",
+    "toasts": "Use Sonner toast notifications in Bahasa Indonesia for save, upload, export, and delete actions."
+  },
+  "image_urls": {
+    "merchant_avatars": [
+      {
+        "url": "https://images.unsplash.com/photo-1678876507096-b71b2fe86730?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2NDN8MHwxfHNlYXJjaHwxfHxpbmRvbmVzaWFuJTIwZW50cmVwcmVuZXVyJTIwbWVyY2hhbnQlMjBzbWlsaW5nJTIwcG9ydHJhaXR8ZW58MHx8fHwxNzg4ODQ3MTMxfDA&ixlib=rb-4.1.0&q=85",
+        "description": "Pak Budi - Owner Toko Fashion Batik",
+        "category": "merchant_avatar"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1712129461267-9de68dfc6fcb?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2NDN8MHwxfHNlYXJjaHwzfHxpbmRvbmVzaWFuJTIwZW50cmVwcmVuZXVyJTIwbWVyY2hhbnQlMjBzbWlsaW5nJTIwcG9ydHJhaXR8ZW58MHx8fHwxNzg4ODQ3MTMxfDA&ixlib=rb-4.1.0&q=85",
+        "description": "Ibu Siti - Owner Snack & Kuliner Nusantara",
+        "category": "merchant_avatar"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1747716796889-b973cae4d028?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2NDN8MHwxfHNlYXJjaHw0fHxhc2lhbiUyMHdvbWFuJTIwcGhvbmUlMjBsaXZlc3RyZWFtJTIwcG9ydHJhaXQlMjBzbWlsaW5nfGVufDB8fHx8MTc4ODg0NzEzNHww&ixlib=rb-4.1.0&q=85",
+        "description": "Siska - Top TikTok Shop Affiliate Creator",
+        "category": "creator_avatar"
+      }
+    ],
+    "warehouse_logistics": [
+      {
+        "url": "https://images.unsplash.com/photo-1695653422543-7da6d6744364?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1ODF8MHwxfHNlYXJjaHwxfHxpbmRvbmVzaWElMjBsb2dpc3RpY3MlMjBwYWNrYWdlJTIwZGVsaXZlcnklMjBzZWxsZXIlMjB3YXJlaG91c2V8ZW58MHx8fHwxNzg4ODQ3MTMxfDA&ixlib=rb-4.1.0&q=85",
+        "description": "Pengiriman Paket TikTok Shop Indonesia",
+        "category": "hero_background"
+      }
+    ]
+  },
+  "testing_and_qa": {
+    "required_data_testids": [
+      "nav-dashboard",
+      "nav-upload-ekstraksi",
+      "nav-database-pelanggan",
+      "nav-peta-lokasi",
+      "nav-analisis-creator",
+      "nav-perlu-di-ss",
+      "nav-segmen-export",
+      "nav-pengaturan",
+      "nav-tentang",
+      "upload-dropzone-input",
+      "btn-proses-ekstraksi",
+      "table-quick-correct",
+      "search-pelanggan-input",
+      "filter-tag-select",
+      "btn-whatsapp-chat",
+      "btn-export-csv",
+      "btn-export-wa-list",
+      "customer-detail-drawer",
+      "input-catatan-pelanggan",
+      "btn-simpan-catatan",
+      "map-indonesia-echarts",
+      "chart-top-provinsi",
+      "chart-top-kota"
+    ]
+  },
+  "instructions_to_main_agent": [
+    "Ensure all interactive components use the specified data-testid attributes for E2E testing.",
+    "Do NOT use purple or violet gradient styles.",
+    "Format currency in Rupiah (e.g., Rp 1.250.000) and dates in Indonesian format (e.g., 18 Juli 2026).",
+    "Keep all UI copy strictly in Bahasa Indonesia.",
+    "Use ECharts for the 38 provinces Indonesia choropleth map and ranked bar charts.",
+    "Make the screenshot upload zone highly functional with drag-and-drop support, mock AI extraction progress, and a quick-correct table."
+  ]
+}

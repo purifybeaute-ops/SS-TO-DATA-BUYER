@@ -1,0 +1,38 @@
+{
+  "summary": "Backend-only end-to-end testing of PetaPembeli MVP. Created pytest suite covering 29 tests across all 12 API areas: auth (login/me/register + role checks), Gemini 3 Flash vision extraction on real TikTok screenshot, orders save + phone-dedupe + region normalization, customers list/search/filter/patch, tags CRUD + operator RBAC, normalization rules + retroactive update + unmapped tracking, creators aggregate + niche upsert, CSV import + gap analysis on real 1500+ row seller export, settings get/put with RBAC, analytics dashboard + regions, segments preview + CSV export. Result: 29/29 passing after one small fix (see below).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/csv/import", "issue": "CSV file with UTF-8 BOM (which TikTok Shop exports use) was decoded without stripping BOM, so first header became '\\ufeffOrder ID' and every row was skipped (read=1500, upserted=0). Fixed by switching decode from 'utf-8' to 'utf-8-sig' in server.py line 501."}
+    ]
+  },
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "Review the BOM-stripping fix in server.py (utf-8 -> utf-8-sig) — accepted and now working.",
+    "Consider adding an integration test for owner-only /api/csv/import (operator should get 403) — currently only owner-path is asserted."
+  ],
+  "critical_code_review_comments": [
+    "server.py is ~740 lines — approaching the 700 LOC guideline; consider splitting into routers (auth.py already exists; add customers.py, analytics.py, csv.py, etc.) as feature set grows.",
+    "CORS: allow_origins defaults to '*' with allow_credentials=True — browsers reject this combo. Not a test blocker today but a production hardening item.",
+    "/api/csv/import uses require_owner but the endpoint name suggests it might be surfaced to operators; verify UX intent.",
+    "apply_normalization writes to db.unmapped on every unnormalized value — for high-throughput CSV imports this is O(rows) writes; consider batching or bulk write.",
+    "analytics_dashboard uses distinct() to count kotas/provinsi (fine at 40 customers) but should be replaced with an aggregate pipeline at scale.",
+    "verify_password swallows all exceptions returning False — good defensive coding, but log at debug level for debuggability."
+  ],
+  "updated_files": [
+    "/app/backend/server.py  (utf-8 -> utf-8-sig for CSV decode)",
+    "/app/backend/tests/backend_test.py  (new pytest suite)",
+    "/app/backend/tests/__init__.py  (new)"
+  ],
+  "success_rate": {"backend": "100% (29/29)", "frontend": "N/A (skipped per request)"},
+  "test_credentials": "owner@petapembeli.id / owner123 (owner), operator@petapembeli.id / operator123 (operator) — both confirmed working.",
+  "seed_data_creation": "No manual seed created. Startup seed populated 40 customers, 51 orders, 6 tags, 26 norm rules, 6 creator niches, wa_template + csv_mapping. Tests created a few TEST_-prefixed users/customers/tags/rules/niches using unique UUID-based identifiers to avoid collisions.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend is fully functional. All 29 endpoint tests in /app/backend/tests/backend_test.py pass. Vision endpoint correctly extracts recipient_name='Cahyo Jpr Susmiati', phone_normalized='+6282238994951', kota contains 'Jakarta', provinsi='DKI Jakarta', affiliate_creator='anyagabrielles' from the sample screenshot. CSV import now handles UTF-8 BOM. If frontend testing begins, use REACT_APP_BACKEND_URL=https://petapembeli-demo.preview.emergentagent.com. Note: tests create some TEST_ tagged/named data that persists in Mongo; safe because seed only runs when collections are empty.",
+  "rca of the issue": "CSV import (0 upserted): TikTok Shop's exported CSV starts with a UTF-8 BOM (0xEF 0xBB 0xBF). Python's csv.DictReader kept the BOM as part of the first column header, turning 'Order ID' into '\\ufeffOrder ID'. The row.get('Order ID') lookup returned None, oid became '', and the `if not oid: continue` skipped every row. Fix: decode with 'utf-8-sig' which strips the BOM. Verified: re-ran TestCSV.test_import_and_gap after fix -> PASS with upserted > 0 and gap > 0."
+}

@@ -1,0 +1,348 @@
+import { useEffect, useMemo, useState } from "react";
+import { api } from "@/lib/api";
+import ReactECharts from "echarts-for-react";
+import * as echarts from "echarts";
+import { MapPin, Layers, AlertTriangle } from "lucide-react";
+
+const GEO_URLS = [
+  "https://cdn.jsdelivr.net/gh/superpikar/indonesia-geojson@master/indonesia-prov.geojson",
+  "https://raw.githubusercontent.com/superpikar/indonesia-geojson/master/indonesia-prov.geojson",
+];
+
+// Try to detect province name property in a GeoJSON feature
+function pickPropName(props) {
+  return (
+    props.Propinsi ||
+    props.PROPINSI ||
+    props.name ||
+    props.NAME_1 ||
+    props.state ||
+    props.province ||
+    props.provinsi ||
+    ""
+  );
+}
+
+// Normalize map name -> our normalized Indonesian name for join key
+const MAP_NAME_ALIAS = {
+  "DI Yogyakarta": "Daerah Istimewa Yogyakarta",
+  "Yogyakarta": "Daerah Istimewa Yogyakarta",
+  "Bangka Belitung": "Kepulauan Bangka Belitung",
+  "Kep. Bangka Belitung": "Kepulauan Bangka Belitung",
+  "Kep. Riau": "Kepulauan Riau",
+};
+
+const COLOR_SCALE = ["#FFEDD5", "#FDBA74", "#FB923C", "#E05206", "#9A3412"];
+
+export default function MapAnalysis() {
+  const [source, setSource] = useState("both");
+  const [data, setData] = useState({ provinsi: [], kota: [], kecamatan: [], repeat_kota: [] });
+  const [dashboard, setDashboard] = useState(null);
+  const [tags, setTags] = useState([]);
+  const [tagFilter, setTagFilter] = useState("");
+  const [selectedProv, setSelectedProv] = useState(null);
+  const [selectedKota, setSelectedKota] = useState(null);
+  const [mapReady, setMapReady] = useState(false);
+  const [unmatched, setUnmatched] = useState([]);
+  const [mapError, setMapError] = useState(false);
+  const [geoProps, setGeoProps] = useState([]); // list of names present in GeoJSON
+
+  useEffect(() => {
+    api.get("/tags").then((r) => setTags(r.data));
+    api.get("/analytics/dashboard").then((r) => setDashboard(r.data));
+  }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams({ source });
+    if (tagFilter) params.append("tag_id", tagFilter);
+    if (selectedProv) params.append("provinsi", selectedProv);
+    if (selectedKota) params.append("kota", selectedKota);
+    api.get(`/analytics/regions?${params}`).then((r) => setData(r.data));
+  }, [source, tagFilter, selectedProv, selectedKota]);
+
+  // Register Indonesia map once
+  useEffect(() => {
+    (async () => {
+      for (const url of GEO_URLS) {
+        try {
+          const resp = await fetch(url);
+          if (!resp.ok) continue;
+          const gj = await resp.json();
+          echarts.registerMap("indonesia", gj);
+          const names = gj.features.map((f) => pickPropName(f.properties));
+          setGeoProps(names);
+          setMapReady(true);
+          return;
+        } catch (e) {
+          continue;
+        }
+      }
+      setMapError(true);
+    })();
+  }, []);
+
+  // Compute unmatched normalized names vs geojson
+  useEffect(() => {
+    if (!mapReady || geoProps.length === 0) return;
+    const geoNormSet = new Set(geoProps.map((n) => (MAP_NAME_ALIAS[n] || n).toLowerCase()));
+    const um = data.provinsi.filter((p) => {
+      const nm = (p.name || "").toLowerCase();
+      // Also check without "Provinsi " prefix
+      return !geoNormSet.has(nm) && !geoNormSet.has(nm.replace(/^provinsi\s+/, ""));
+    });
+    setUnmatched(um);
+  }, [data.provinsi, mapReady, geoProps]);
+
+  const total = data.provinsi.reduce((s, p) => s + p.count, 0);
+
+  const mapOption = useMemo(() => {
+    if (!mapReady) return {};
+    // Build map value by matching normalized name -> geojson property name
+    const provMap = {};
+    for (const p of data.provinsi) provMap[p.name.toLowerCase()] = p.count;
+
+    const mapData = geoProps.map((rawName) => {
+      const key = (MAP_NAME_ALIAS[rawName] || rawName).toLowerCase();
+      const value = provMap[key] || 0;
+      return { name: rawName, value };
+    });
+    const maxVal = Math.max(1, ...mapData.map((d) => d.value));
+
+    return {
+      tooltip: {
+        trigger: "item",
+        formatter: (p) => {
+          const pct = total ? ((p.value / total) * 100).toFixed(1) : 0;
+          return `<div style="font-family: 'Plus Jakarta Sans'"><b>${p.name}</b><br/>Pembeli: <b>${p.value || 0}</b><br/>${pct}% dari total</div>`;
+        },
+      },
+      visualMap: {
+        min: 0,
+        max: maxVal,
+        left: 10,
+        bottom: 20,
+        text: ["Banyak", "Sedikit"],
+        inRange: { color: ["#F5F1E8", ...COLOR_SCALE] },
+        textStyle: { color: "#57534E", fontFamily: "Plus Jakarta Sans" },
+        calculable: true,
+        itemWidth: 14,
+      },
+      series: [{
+        type: "map",
+        map: "indonesia",
+        roam: true,
+        aspectScale: 1,
+        emphasis: {
+          label: { show: false },
+          itemStyle: { areaColor: "#C2410C", borderColor: "#7C2D12" },
+        },
+        select: {
+          itemStyle: { areaColor: "#9A3412", borderColor: "#431407" },
+          label: { color: "#FFFFFF" },
+        },
+        itemStyle: { borderColor: "#D4CBB5", borderWidth: 0.6 },
+        data: mapData,
+      }],
+    };
+  }, [mapReady, data.provinsi, geoProps, total]);
+
+  const provChart = useMemo(() => ({
+    grid: { left: 140, right: 20, top: 10, bottom: 20 },
+    xAxis: { type: "value", axisLine: { lineStyle: { color: "#D4CBB5" } }, splitLine: { lineStyle: { color: "#EDE8DE" } }},
+    yAxis: {
+      type: "category",
+      data: data.provinsi.slice(0, 15).map((p) => p.name).reverse(),
+      axisLine: { lineStyle: { color: "#D4CBB5" } },
+      axisLabel: { color: "#1C1917", fontFamily: "Plus Jakarta Sans", fontSize: 11 },
+    },
+    tooltip: { trigger: "axis" },
+    series: [{
+      type: "bar",
+      data: data.provinsi.slice(0, 15).map((p) => p.count).reverse(),
+      itemStyle: { color: "#C2410C", borderRadius: [0, 6, 6, 0] },
+      barWidth: 14,
+    }],
+  }), [data.provinsi]);
+
+  const kotaChart = useMemo(() => ({
+    grid: { left: 160, right: 20, top: 10, bottom: 20 },
+    xAxis: { type: "value", splitLine: { lineStyle: { color: "#EDE8DE" } }},
+    yAxis: {
+      type: "category",
+      data: data.kota.slice(0, 15).map((p) => p.name).reverse(),
+      axisLabel: { color: "#1C1917", fontFamily: "Plus Jakarta Sans", fontSize: 11 },
+    },
+    tooltip: { trigger: "axis" },
+    series: [{
+      type: "bar",
+      data: data.kota.slice(0, 15).map((p) => p.count).reverse(),
+      itemStyle: { color: "#D97706", borderRadius: [0, 6, 6, 0] },
+      barWidth: 14,
+    }],
+  }), [data.kota]);
+
+  const kecChart = useMemo(() => ({
+    grid: { left: 160, right: 20, top: 10, bottom: 20 },
+    xAxis: { type: "value", splitLine: { lineStyle: { color: "#EDE8DE" } }},
+    yAxis: {
+      type: "category",
+      data: data.kecamatan.slice(0, 12).map((p) => p.name).reverse(),
+      axisLabel: { color: "#1C1917", fontFamily: "Plus Jakarta Sans", fontSize: 11 },
+    },
+    tooltip: { trigger: "axis" },
+    series: [{
+      type: "bar",
+      data: data.kecamatan.slice(0, 12).map((p) => p.count).reverse(),
+      itemStyle: { color: "#B45309", borderRadius: [0, 6, 6, 0] },
+      barWidth: 14,
+    }],
+  }), [data.kecamatan]);
+
+  const onMapClick = (e) => {
+    if (!e.name) return;
+    // Convert clicked name to normalized name for our data
+    const norm = MAP_NAME_ALIAS[e.name] || e.name;
+    setSelectedProv(selectedProv === norm ? null : norm);
+    setSelectedKota(null);
+  };
+
+  return (
+    <div className="p-4 sm:p-6 lg:p-8 space-y-5" data-testid="peta-page">
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+        <div>
+          <div className="text-xs uppercase tracking-wider text-stone-500 mb-1">Geografi</div>
+          <h1 className="font-display text-3xl sm:text-4xl font-extrabold tracking-tight text-stone-900">
+            Peta & Analisis Lokasi
+          </h1>
+          <p className="text-stone-600 mt-2">
+            Distribusi pembeli berdasarkan data yang sudah dinormalisasi.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="inline-flex rounded-lg overflow-hidden border" style={{ borderColor: "var(--border)" }} data-testid="source-toggle">
+            {[
+              { v: "screenshots", l: "Screenshot" },
+              { v: "csv", l: "CSV" },
+              { v: "both", l: "Keduanya" },
+            ].map((o) => (
+              <button
+                key={o.v}
+                onClick={() => setSource(o.v)}
+                className={`px-3 py-1.5 text-xs font-medium transition-colors ${
+                  source === o.v ? "text-white" : "text-stone-700 bg-white hover:bg-stone-50"
+                }`}
+                style={source === o.v ? { background: "var(--accent)" } : {}}
+                data-testid={`source-${o.v}`}
+              >{o.l}</button>
+            ))}
+          </div>
+          <select value={tagFilter} onChange={(e) => setTagFilter(e.target.value)}
+                  className="pp-input rounded-lg px-3 py-1.5 text-xs">
+            <option value="">Semua Tag</option>
+            {tags.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+          </select>
+        </div>
+      </div>
+
+      {dashboard && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <StatTile label="Total Pelanggan" value={dashboard.total_customers} />
+          <StatTile label="Kota Terjangkau" value={dashboard.total_kota} />
+          <StatTile label="Provinsi Terjangkau" value={dashboard.total_provinsi} />
+          <StatTile label="% Pembeli Berulang" value={`${dashboard.repeat_pct}%`} />
+        </div>
+      )}
+
+      {(selectedProv || selectedKota) && (
+        <div className="pp-card p-3 flex items-center gap-3 text-sm" style={{ background: "var(--accent-light)", borderColor: "#FED7AA" }}>
+          <Layers className="w-4 h-4 text-orange-800" />
+          <span>Filter aktif: {selectedProv && <b>{selectedProv}</b>} {selectedKota && <> · <b>{selectedKota}</b></>}</span>
+          <button onClick={() => { setSelectedProv(null); setSelectedKota(null); }} className="ml-auto text-xs pp-link">Hapus filter</button>
+        </div>
+      )}
+
+      {!mapError && (
+        <div className="pp-card p-3 sm:p-5" data-testid="map-indonesia-echarts">
+          <div className="flex items-center gap-2 mb-3">
+            <MapPin className="w-4 h-4 text-orange-700" />
+            <h2 className="font-display font-bold text-lg">Peta Sebaran Pembeli — 38 Provinsi</h2>
+          </div>
+          {mapReady ? (
+            <ReactECharts
+              option={mapOption}
+              style={{ height: "480px", width: "100%" }}
+              onEvents={{ click: onMapClick }}
+            />
+          ) : (
+            <div className="h-[480px] flex items-center justify-center text-sm text-stone-500">
+              Memuat peta Indonesia...
+            </div>
+          )}
+          {unmatched.length > 0 && (
+            <div className="mt-3 p-3 rounded-lg text-xs" style={{ background: "#FEF3C7", color: "#854D0E" }}>
+              <div className="font-semibold flex items-center gap-1 mb-1"><AlertTriangle className="w-3 h-3" /> Provinsi tidak cocok peta ({unmatched.length})</div>
+              <div>{unmatched.map((u) => `${u.name} (${u.count})`).join(" · ")}</div>
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="pp-card p-5" data-testid="chart-top-provinsi">
+          <h3 className="font-display font-bold text-base mb-2">Peringkat Provinsi</h3>
+          {data.provinsi.length ? (
+            <ReactECharts option={provChart} style={{ height: 380 }} />
+          ) : <EmptyChart />}
+        </div>
+        <div className="pp-card p-5" data-testid="chart-top-kota">
+          <h3 className="font-display font-bold text-base mb-2">Top 15 Kota</h3>
+          {data.kota.length ? (
+            <ReactECharts option={kotaChart} style={{ height: 380 }} />
+          ) : <EmptyChart />}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="pp-card p-5">
+          <h3 className="font-display font-bold text-base mb-2">
+            {selectedProv ? `Kecamatan di ${selectedProv}` : selectedKota ? `Kecamatan di ${selectedKota}` : "Peringkat Kecamatan"}
+          </h3>
+          {data.kecamatan.length ? (
+            <ReactECharts option={kecChart} style={{ height: 320 }} />
+          ) : (
+            <div className="text-sm text-stone-500 py-8 text-center">Pilih provinsi atau kota di atas untuk drill-down.</div>
+          )}
+        </div>
+        <div className="pp-card p-5">
+          <h3 className="font-display font-bold text-base mb-2">Konsentrasi Pembeli Berulang (per Kota)</h3>
+          {data.repeat_kota.length ? (
+            <div className="space-y-2 max-h-[320px] overflow-y-auto pr-1">
+              {data.repeat_kota.slice(0, 15).map((r, i) => (
+                <div key={r.name} className="flex items-center gap-2 text-sm">
+                  <span className="w-5 text-stone-400 text-xs">#{i + 1}</span>
+                  <span className="flex-1">{r.name}</span>
+                  <span className="font-mono font-semibold">{r.count}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-sm text-stone-500 py-8 text-center">Belum ada pembeli berulang tercatat.</div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StatTile({ label, value }) {
+  return (
+    <div className="pp-card p-4">
+      <div className="text-2xl font-display font-extrabold text-stone-900">{value}</div>
+      <div className="text-xs text-stone-500 mt-1 uppercase tracking-wider">{label}</div>
+    </div>
+  );
+}
+
+function EmptyChart() {
+  return <div className="h-[300px] flex items-center justify-center text-sm text-stone-500">Belum ada data.</div>;
+}
