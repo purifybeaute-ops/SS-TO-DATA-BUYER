@@ -49,6 +49,25 @@ def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+async def log_audit(user: dict, action: str, target_type: Optional[str] = None,
+                    target_id: Optional[str] = None, details: Optional[dict] = None):
+    """Append an audit entry. Failure to log must never break the caller."""
+    try:
+        await db.audit_logs.insert_one({
+            "id": str(uuid.uuid4()),
+            "actor_id": user.get("sub"),
+            "actor_email": user.get("email"),
+            "actor_role": user.get("role"),
+            "action": action,
+            "target_type": target_type,
+            "target_id": target_id,
+            "details": details or {},
+            "created_at": now_iso(),
+        })
+    except Exception as e:
+        logger.warning("audit log failed: %s", e)
+
+
 def strip_id(doc: dict) -> dict:
     if not doc:
         return doc
@@ -131,6 +150,7 @@ async def register(body: RegisterIn, owner=Depends(require_owner)):
         "created_at": now_iso(),
     }
     await db.users.insert_one(doc)
+    await log_audit(owner, "user.create", "user", doc["id"], {"email": doc["email"]})
     return {"id": doc["id"], "email": doc["email"], "name": doc["name"], "role": doc["role"]}
 
 
@@ -261,6 +281,7 @@ async def save_orders(orders: List[OrderIn], user=Depends(get_current_user)):
         await db.orders.insert_one(order_doc)
         saved.append({"customer_id": cust_id, "order_id": o.order_id})
 
+    await log_audit(user, "orders.save", "order", None, {"count": len(saved)})
     return {"saved": len(saved), "results": saved}
 
 
@@ -325,6 +346,7 @@ async def patch_customer(cid: str, body: CustomerPatch, user=Depends(get_current
     result = await db.customers.update_one({"id": cid}, {"$set": update})
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Pelanggan tidak ditemukan")
+    await log_audit(user, "customer.update", "customer", cid, {"fields": list(update.keys())})
     return {"ok": True}
 
 
@@ -360,6 +382,12 @@ async def bulk_update_customers(body: BulkCustomerUpdate, user=Depends(get_curre
             r = await db.customers.update_one({"id": cid}, ops)
             if r.matched_count:
                 updated += 1
+    await log_audit(user, "customer.bulk", "customer", None, {
+        "count": updated,
+        "add_tag_ids": body.add_tag_ids or [],
+        "remove_tag_ids": body.remove_tag_ids or [],
+        "note_added": bool(body.note_append or body.note_replace),
+    })
     return {"updated": updated}
 
 
@@ -386,12 +414,14 @@ async def create_norm_rule(body: NormRuleIn, owner=Depends(require_owner)):
     # Retroactively update customers + orders
     await db.customers.update_many({body.level: body.raw}, {"$set": {body.level: body.normalized}})
     await db.orders.update_many({body.level: body.raw}, {"$set": {body.level: body.normalized}})
+    await log_audit(owner, "norm.create", "norm_rule", doc["id"], {"raw": body.raw, "normalized": body.normalized, "level": body.level})
     return strip_id(doc)
 
 
 @api.delete("/normalization/rules/{rid}")
 async def delete_norm_rule(rid: str, owner=Depends(require_owner)):
     await db.norm_rules.delete_one({"id": rid})
+    await log_audit(owner, "norm.delete", "norm_rule", rid)
     return {"ok": True}
 
 
@@ -417,12 +447,14 @@ async def list_tags(user=Depends(get_current_user)):
 async def create_tag(body: TagIn, owner=Depends(require_owner)):
     doc = {"id": str(uuid.uuid4()), "name": body.name, "color": body.color, "created_at": now_iso()}
     await db.tags.insert_one(doc)
+    await log_audit(owner, "tag.create", "tag", doc["id"], {"name": body.name})
     return strip_id(doc)
 
 
 @api.patch("/tags/{tid}")
 async def update_tag(tid: str, body: TagIn, owner=Depends(require_owner)):
     await db.tags.update_one({"id": tid}, {"$set": {"name": body.name, "color": body.color}})
+    await log_audit(owner, "tag.update", "tag", tid, {"name": body.name})
     return {"ok": True}
 
 
@@ -430,6 +462,7 @@ async def update_tag(tid: str, body: TagIn, owner=Depends(require_owner)):
 async def delete_tag(tid: str, owner=Depends(require_owner)):
     await db.tags.delete_one({"id": tid})
     await db.customers.update_many({"tag_ids": tid}, {"$pull": {"tag_ids": tid}})
+    await log_audit(owner, "tag.delete", "tag", tid)
     return {"ok": True}
 
 
@@ -521,6 +554,7 @@ class SettingIn(BaseModel):
 @api.put("/settings/{key}")
 async def put_setting(key: str, body: SettingIn, owner=Depends(require_owner)):
     await db.settings.update_one({"key": key}, {"$set": {"key": key, "value": body.value}}, upsert=True)
+    await log_audit(owner, "setting.update", "setting", key)
     return {"ok": True}
 
 
@@ -590,6 +624,7 @@ async def csv_import(
         }
         await db.csv_orders.update_one({"line_key": line_key}, {"$set": doc}, upsert=True)
         upserted += 1
+    await log_audit(owner, "csv.import", "csv", None, {"read": count, "upserted": upserted, "filename": file.filename})
     return {"read": count, "upserted": upserted}
 
 
@@ -880,6 +915,7 @@ async def vision_extract_zip(file: UploadFile = File(...), user=Depends(get_curr
         "user_id": user["sub"],
     })
     asyncio.create_task(_process_zip_job(job_id, content))
+    await log_audit(user, "vision.zip", "job", job_id, {"filename": file.filename, "size": len(content)})
     return {"job_id": job_id, "status": "queued"}
 
 
@@ -1061,6 +1097,26 @@ async def customer_reminders(user=Depends(get_current_user)):
         "counts": {k: len(v) for k, v in buckets.items()},
         "buckets": buckets,
     }
+
+
+# ---------------------------------------------------------------------------
+# Audit log — owner only
+# ---------------------------------------------------------------------------
+@api.get("/audit")
+async def list_audit(
+    actor: Optional[str] = None,
+    action: Optional[str] = None,
+    limit: int = 300,
+    owner=Depends(require_owner),
+):
+    query: Dict[str, Any] = {}
+    if actor: query["actor_email"] = actor
+    if action: query["action"] = action
+    logs = await db.audit_logs.find(query, {"_id": 0}).sort("created_at", -1).limit(min(limit, 500)).to_list(500)
+    # counts by action for filter dropdown
+    pipeline = [{"$group": {"_id": "$action", "count": {"$sum": 1}}}, {"$sort": {"count": -1}}]
+    actions = await db.audit_logs.aggregate(pipeline).to_list(50)
+    return {"logs": logs, "actions": [{"action": a["_id"], "count": a["count"]} for a in actions]}
 
 
 # ---------------------------------------------------------------------------

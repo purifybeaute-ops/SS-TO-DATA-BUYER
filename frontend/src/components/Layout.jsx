@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/auth.jsx";
 import Onboarding from "@/components/Onboarding";
 import {
   LayoutDashboard, Upload as UploadIcon, Users, Map, Sparkles,
-  ClipboardList, Filter, Settings, Info, LogOut, MapPinned, Package, Clock, HelpCircle,
+  ClipboardList, Filter, Settings, Info, LogOut, MapPinned, Package, Clock, HelpCircle, ScrollText,
 } from "lucide-react";
 
 const NAV = [
@@ -17,6 +17,7 @@ const NAV = [
   { to: "/reminder", label: "Segmen Reminder", icon: Clock, testId: "nav-reminder" },
   { to: "/perlu-ss", label: "Perlu Di-SS", icon: ClipboardList, testId: "nav-perlu-di-ss" },
   { to: "/segmen", label: "Segmen & Export", icon: Filter, testId: "nav-segmen-export" },
+  { to: "/riwayat", label: "Riwayat Aktivitas", icon: ScrollText, testId: "nav-riwayat", ownerOnly: true },
   { to: "/pengaturan", label: "Pengaturan", icon: Settings, testId: "nav-pengaturan" },
   { to: "/tentang", label: "Tentang", icon: Info, testId: "nav-tentang" },
 ];
@@ -55,7 +56,7 @@ export default function Layout() {
           </div>
         </div>
         <nav className="flex-1 overflow-y-auto p-3 space-y-1">
-          {NAV.map(({ to, label, icon: Icon, testId, end }) => (
+          {NAV.filter((n) => !n.ownerOnly || user?.role === "owner").map(({ to, label, icon: Icon, testId, end }) => (
             <NavLink
               key={to}
               to={to}
