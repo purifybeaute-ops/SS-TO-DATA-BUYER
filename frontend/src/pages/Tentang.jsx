@@ -1,13 +1,22 @@
+import PKLogo from "@/components/PKLogo";
 import { Info, ShoppingBag, Camera, Database } from "lucide-react";
 
 export default function Tentang() {
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-3xl space-y-5" data-testid="tentang-page">
       <div>
-        <div className="text-xs uppercase tracking-wider text-stone-500 mb-1">Tentang</div>
-        <h1 className="font-display text-3xl sm:text-4xl font-extrabold tracking-tight text-stone-900">
-          PelangganKu
-        </h1>
+        <div className="flex items-center gap-3 mb-2">
+          <PKLogo size={48} />
+          <div>
+            <div className="text-xs uppercase tracking-wider text-stone-500">Tentang</div>
+            <h1 className="font-display text-3xl sm:text-4xl font-extrabold tracking-tight text-stone-900">
+              PelangganKu
+            </h1>
+          </div>
+        </div>
+        <div className="text-sm font-semibold text-orange-800 uppercase tracking-widest">
+          Jangkau Ulang Setiap Pembeli
+        </div>
       </div>
 
       <div className="pp-card p-6 space-y-4">

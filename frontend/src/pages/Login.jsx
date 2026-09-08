@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useAuth } from "@/lib/auth.jsx";
 import { useNavigate, Navigate } from "react-router-dom";
 import { toast } from "sonner";
-import { MapPinned, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import PKLogo from "@/components/PKLogo";
 
 export default function Login() {
   const { user, login } = useAuth();
@@ -40,10 +41,12 @@ export default function Login() {
       <div className="hidden lg:flex flex-1 items-center justify-center p-12"
            style={{ background: "linear-gradient(160deg, #FFEDD5 0%, #FED7AA 60%, #FDBA74 100%)" }}>
         <div className="max-w-md">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full mb-6"
-               style={{ background: "rgba(255,255,255,0.6)", border: "1px solid rgba(194,65,12,0.2)" }}>
-            <span className="w-2 h-2 rounded-full" style={{ background: "var(--accent)" }} />
-            <span className="text-xs font-medium tracking-wider uppercase text-orange-900">Untuk Seller Indonesia</span>
+          <div className="flex items-center gap-3 mb-6">
+            <PKLogo size={56} />
+            <div>
+              <div className="font-display font-extrabold text-xl text-stone-900 leading-tight">PelangganKu</div>
+              <div className="text-xs uppercase tracking-widest text-orange-900/70">Jangkau Ulang Setiap Pembeli</div>
+            </div>
           </div>
           <h1 className="font-display text-5xl font-extrabold leading-[1.05] text-stone-900 mb-4">
             Ubah screenshot pesanan jadi <span className="text-orange-700">database pelanggan</span> Anda sendiri.
@@ -66,9 +69,7 @@ export default function Login() {
       <div className="flex-1 flex items-center justify-center p-6 lg:p-12">
         <form onSubmit={submit} className="w-full max-w-sm space-y-5" data-testid="login-form">
           <div className="lg:hidden flex items-center gap-2 mb-8">
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: "var(--accent)" }}>
-              <MapPinned className="w-5 h-5 text-white" />
-            </div>
+            <PKLogo size={44} />
             <div className="font-display font-extrabold text-xl">PelangganKu</div>
           </div>
 

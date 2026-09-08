@@ -6,5 +6,6 @@
     </linearGradient>
   </defs>
   <rect width="64" height="64" rx="14" fill="url(#bg)"/>
-  <text x="50%" y="52%" font-family="'Sora','Plus Jakarta Sans',Arial,sans-serif" font-size="28" font-weight="800" fill="#FFF7ED" text-anchor="middle" dominant-baseline="middle" letter-spacing="-1">PK</text>
+  <rect x="4" y="4" width="56" height="56" rx="11" fill="none" stroke="#7C2D12" stroke-width="1.2" opacity="0.55"/>
+  <text x="32" y="43" font-family="'Sora','Plus Jakarta Sans',Arial,sans-serif" font-size="28" font-weight="800" fill="#FFF7ED" text-anchor="middle" letter-spacing="-1">PK</text>
 </svg>

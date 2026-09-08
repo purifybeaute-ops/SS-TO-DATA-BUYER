@@ -2,9 +2,10 @@ import { Outlet, NavLink, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth.jsx";
 import Onboarding from "@/components/Onboarding";
+import PKLogo from "@/components/PKLogo";
 import {
   LayoutDashboard, Upload as UploadIcon, Users, Map, Sparkles,
-  ClipboardList, Filter, Settings, Info, LogOut, MapPinned, Package, Clock, HelpCircle, ScrollText,
+  ClipboardList, Filter, Settings, Info, LogOut, Package, Clock, HelpCircle, ScrollText,
 } from "lucide-react";
 
 const NAV = [
@@ -41,16 +42,14 @@ export default function Layout() {
         data-testid="app-sidebar"
       >
         <div className="p-6 border-b" style={{ borderColor: "var(--border)" }}>
-          <div className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: "var(--accent)" }}>
-              <MapPinned className="w-5 h-5 text-white" />
-            </div>
+          <div className="flex items-center gap-2.5">
+            <PKLogo size={40} />
             <div>
               <div className="font-display font-extrabold text-lg tracking-tight text-stone-900">
                 PelangganKu
               </div>
               <div className="text-[10px] uppercase tracking-wider text-stone-500">
-                TikTok Shop CRM
+                Jangkau Ulang Setiap Pembeli
               </div>
             </div>
           </div>
@@ -103,9 +102,7 @@ export default function Layout() {
       {/* Mobile top bar */}
       <div className="lg:hidden fixed top-0 inset-x-0 z-40 flex items-center gap-2 px-4 py-3 border-b"
            style={{ background: "var(--bg-2)", borderColor: "var(--border)" }}>
-        <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "var(--accent)" }}>
-          <MapPinned className="w-4 h-4 text-white" />
-        </div>
+        <PKLogo size={32} />
         <div className="font-display font-bold text-base">PelangganKu</div>
         <button onClick={logout} className="ml-auto text-xs text-stone-600 flex items-center gap-1"
                 data-testid="btn-logout-mobile">

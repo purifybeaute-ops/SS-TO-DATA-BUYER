@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Camera, FileSpreadsheet, Users, ArrowRight, X, MapPinned } from "lucide-react";
+import { Camera, FileSpreadsheet, Users, ArrowRight, X } from "lucide-react";
+import PKLogo from "@/components/PKLogo";
 
 const STEPS = [
   {
@@ -50,8 +51,8 @@ export default function Onboarding({ onClose }) {
               <Icon className="w-8 h-8 text-white" />
             </div>
           </div>
-          <div className="absolute bottom-3 left-4 flex items-center gap-1.5 text-white/70 text-xs">
-            <MapPinned className="w-3 h-3" /> Selamat datang di PelangganKu
+          <div className="absolute bottom-3 left-4 flex items-center gap-2 text-white/80 text-xs">
+            <PKLogo size={20} /> Selamat datang di PelangganKu — Jangkau Ulang Setiap Pembeli
           </div>
         </div>
 
