@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/lib/auth.jsx";
+import { LanguageProvider } from "@/lib/i18n";
 import { Toaster } from "@/components/ui/sonner";
 import Login from "@/pages/Login";
 import Layout from "@/components/Layout";
@@ -33,35 +34,37 @@ function Protected({ children }) {
 function App() {
   return (
     <div className="App">
-      <AuthProvider>
-        <BrowserRouter>
-          <Toaster richColors position="top-right" />
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route
-              path="/"
-              element={
-                <Protected>
-                  <Layout />
-                </Protected>
-              }
-            >
-              <Route index element={<Dashboard />} />
-              <Route path="upload" element={<Upload />} />
-              <Route path="pelanggan" element={<Customers />} />
-              <Route path="peta" element={<MapAnalysis />} />
-              <Route path="creator" element={<CreatorAnalysis />} />
-              <Route path="perlu-ss" element={<PerluDiSS />} />
-              <Route path="segmen" element={<SegmenExport />} />
-              <Route path="produk" element={<ProductRevenue />} />
-              <Route path="reminder" element={<Reminder />} />
-              <Route path="riwayat" element={<AuditLog />} />
-              <Route path="pengaturan" element={<Pengaturan />} />
-              <Route path="tentang" element={<Tentang />} />
-            </Route>
-          </Routes>
-        </BrowserRouter>
-      </AuthProvider>
+      <LanguageProvider>
+        <AuthProvider>
+          <BrowserRouter>
+            <Toaster richColors position="top-right" />
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route
+                path="/"
+                element={
+                  <Protected>
+                    <Layout />
+                  </Protected>
+                }
+              >
+                <Route index element={<Dashboard />} />
+                <Route path="upload" element={<Upload />} />
+                <Route path="pelanggan" element={<Customers />} />
+                <Route path="peta" element={<MapAnalysis />} />
+                <Route path="creator" element={<CreatorAnalysis />} />
+                <Route path="perlu-ss" element={<PerluDiSS />} />
+                <Route path="segmen" element={<SegmenExport />} />
+                <Route path="produk" element={<ProductRevenue />} />
+                <Route path="reminder" element={<Reminder />} />
+                <Route path="riwayat" element={<AuditLog />} />
+                <Route path="pengaturan" element={<Pengaturan />} />
+                <Route path="tentang" element={<Tentang />} />
+              </Route>
+            </Routes>
+          </BrowserRouter>
+        </AuthProvider>
+      </LanguageProvider>
     </div>
   );
 }

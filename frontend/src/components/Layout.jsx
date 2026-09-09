@@ -1,41 +1,43 @@
-import { Outlet, NavLink, useNavigate } from "react-router-dom";
+import { Outlet, NavLink } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth.jsx";
+import { useT } from "@/lib/i18n";
 import Onboarding from "@/components/Onboarding";
 import PKLogo from "@/components/PKLogo";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 import {
   LayoutDashboard, Upload as UploadIcon, Users, Map, Sparkles,
   ClipboardList, Filter, Settings, Info, LogOut, Package, Clock, HelpCircle, ScrollText,
 } from "lucide-react";
 
 const NAV = [
-  { to: "/", label: "Ikhtisar", icon: LayoutDashboard, testId: "nav-dashboard", end: true },
-  { to: "/upload", label: "Upload & Ekstraksi", icon: UploadIcon, testId: "nav-upload-ekstraksi" },
-  { to: "/pelanggan", label: "Database Pelanggan", icon: Users, testId: "nav-database-pelanggan" },
-  { to: "/peta", label: "Peta & Analisis Lokasi", icon: Map, testId: "nav-peta-lokasi" },
-  { to: "/creator", label: "Analisis Creator", icon: Sparkles, testId: "nav-analisis-creator" },
-  { to: "/produk", label: "Omset per Varian", icon: Package, testId: "nav-produk" },
-  { to: "/reminder", label: "Segmen Reminder", icon: Clock, testId: "nav-reminder" },
-  { to: "/perlu-ss", label: "Perlu Di-SS", icon: ClipboardList, testId: "nav-perlu-di-ss" },
-  { to: "/segmen", label: "Segmen & Export", icon: Filter, testId: "nav-segmen-export" },
-  { to: "/riwayat", label: "Riwayat Aktivitas", icon: ScrollText, testId: "nav-riwayat", ownerOnly: true },
-  { to: "/pengaturan", label: "Pengaturan", icon: Settings, testId: "nav-pengaturan" },
-  { to: "/tentang", label: "Tentang", icon: Info, testId: "nav-tentang" },
+  { to: "/", key: "nav.dashboard", icon: LayoutDashboard, testId: "nav-dashboard", end: true },
+  { to: "/upload", key: "nav.upload", icon: UploadIcon, testId: "nav-upload-ekstraksi" },
+  { to: "/pelanggan", key: "nav.customers", icon: Users, testId: "nav-database-pelanggan" },
+  { to: "/peta", key: "nav.map", icon: Map, testId: "nav-peta-lokasi" },
+  { to: "/creator", key: "nav.creator", icon: Sparkles, testId: "nav-analisis-creator" },
+  { to: "/produk", key: "nav.products", icon: Package, testId: "nav-produk" },
+  { to: "/reminder", key: "nav.reminder", icon: Clock, testId: "nav-reminder" },
+  { to: "/perlu-ss", key: "nav.perluss", icon: ClipboardList, testId: "nav-perlu-di-ss" },
+  { to: "/segmen", key: "nav.segmen", icon: Filter, testId: "nav-segmen-export" },
+  { to: "/riwayat", key: "nav.audit", icon: ScrollText, testId: "nav-riwayat", ownerOnly: true },
+  { to: "/pengaturan", key: "nav.settings", icon: Settings, testId: "nav-pengaturan" },
+  { to: "/tentang", key: "nav.about", icon: Info, testId: "nav-tentang" },
 ];
 
 export default function Layout() {
   const { user, logout } = useAuth();
+  const { t } = useT();
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
-    if (!localStorage.getItem("pp_onboarded")) {
-      setShowOnboarding(true);
-    }
+    if (!localStorage.getItem("pp_onboarded")) setShowOnboarding(true);
   }, []);
 
   return (
     <div className="min-h-screen flex" style={{ background: "var(--bg)" }}>
-      {showOnboarding && <Onboarding onClose={() => setShowOnboarding(false)} />}      {/* Sidebar */}
+      {showOnboarding && <Onboarding onClose={() => setShowOnboarding(false)} />}
+
       <aside
         className="hidden lg:flex flex-col w-64 shrink-0 border-r"
         style={{ background: "var(--bg-2)", borderColor: "var(--border)" }}
@@ -49,13 +51,14 @@ export default function Layout() {
                 PelangganKu
               </div>
               <div className="text-[10px] uppercase tracking-wider text-stone-500">
-                Jangkau Ulang Setiap Pembeli
+                {t("brand.tagline")}
               </div>
             </div>
           </div>
         </div>
+
         <nav className="flex-1 overflow-y-auto p-3 space-y-1">
-          {NAV.filter((n) => !n.ownerOnly || user?.role === "owner").map(({ to, label, icon: Icon, testId, end }) => (
+          {NAV.filter((n) => !n.ownerOnly || user?.role === "owner").map(({ to, key, icon: Icon, testId, end }) => (
             <NavLink
               key={to}
               to={to}
@@ -63,57 +66,58 @@ export default function Layout() {
               data-testid={testId}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
-                  isActive
-                    ? "text-white"
-                    : "text-stone-700 hover:bg-stone-100"
+                  isActive ? "text-white" : "text-stone-700 hover:bg-stone-100"
                 }`
               }
               style={({ isActive }) => (isActive ? { background: "var(--accent)" } : {})}
             >
               <Icon className="w-4 h-4" />
-              <span>{label}</span>
+              <span>{t(key)}</span>
             </NavLink>
           ))}
         </nav>
-        <div className="p-3 border-t" style={{ borderColor: "var(--border)" }}>
-          <div className="text-xs text-stone-600 mb-2 px-2">
-            <div className="font-medium truncate">{user?.name || user?.email}</div>
-            <div className="text-[10px] uppercase tracking-wider text-stone-400">
-              {user?.role}
+
+        <div className="p-3 border-t space-y-2" style={{ borderColor: "var(--border)" }}>
+          <div className="flex items-center justify-between px-2">
+            <div className="text-xs text-stone-600 min-w-0">
+              <div className="font-medium truncate">{user?.name || user?.email}</div>
+              <div className="text-[10px] uppercase tracking-wider text-stone-400">{user?.role}</div>
             </div>
+            <LanguageSwitcher />
           </div>
           <button
             onClick={logout}
             data-testid="btn-logout"
             className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg hover:bg-stone-100 text-stone-700"
           >
-            <LogOut className="w-4 h-4" /> Keluar
+            <LogOut className="w-4 h-4" /> {t("common.logout")}
           </button>
           <button
             onClick={() => setShowOnboarding(true)}
             data-testid="btn-open-onboarding"
-            className="w-full flex items-center gap-2 px-3 py-2 mt-1 text-xs rounded-lg hover:bg-stone-100 text-stone-500"
+            className="w-full flex items-center gap-2 px-3 py-2 text-xs rounded-lg hover:bg-stone-100 text-stone-500"
           >
-            <HelpCircle className="w-3.5 h-3.5" /> Lihat panduan lagi
+            <HelpCircle className="w-3.5 h-3.5" /> {t("common.showGuide")}
           </button>
         </div>
       </aside>
 
-      {/* Mobile top bar */}
       <div className="lg:hidden fixed top-0 inset-x-0 z-40 flex items-center gap-2 px-4 py-3 border-b"
            style={{ background: "var(--bg-2)", borderColor: "var(--border)" }}>
         <PKLogo size={32} />
         <div className="font-display font-bold text-base">PelangganKu</div>
-        <button onClick={logout} className="ml-auto text-xs text-stone-600 flex items-center gap-1"
-                data-testid="btn-logout-mobile">
-          <LogOut className="w-3.5 h-3.5" /> Keluar
-        </button>
+        <div className="ml-auto flex items-center gap-2">
+          <LanguageSwitcher variant="compact" />
+          <button onClick={logout} className="text-xs text-stone-600 flex items-center gap-1"
+                  data-testid="btn-logout-mobile">
+            <LogOut className="w-3.5 h-3.5" /> {t("common.logout")}
+          </button>
+        </div>
       </div>
 
-      {/* Mobile bottom nav */}
       <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 grid grid-cols-5 border-t"
            style={{ background: "var(--bg-2)", borderColor: "var(--border)" }}>
-        {NAV.slice(0, 5).map(({ to, label, icon: Icon, testId, end }) => (
+        {NAV.slice(0, 5).map(({ to, key, icon: Icon, testId, end }) => (
           <NavLink
             key={to}
             to={to}
@@ -126,7 +130,7 @@ export default function Layout() {
             }
           >
             <Icon className="w-4 h-4 mb-0.5" />
-            <span className="truncate max-w-full px-1">{label.split(" ")[0]}</span>
+            <span className="truncate max-w-full px-1">{t(key).split(" ")[0]}</span>
           </NavLink>
         ))}
       </nav>

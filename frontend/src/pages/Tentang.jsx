@@ -1,44 +1,41 @@
-import PKLogo from "@/components/PKLogo";
 import { Info, ShoppingBag, Camera, Database } from "lucide-react";
+import PKLogo from "@/components/PKLogo";
+import { useT } from "@/lib/i18n";
 
 export default function Tentang() {
+  const { t } = useT();
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-3xl space-y-5" data-testid="tentang-page">
       <div>
         <div className="flex items-center gap-3 mb-2">
           <PKLogo size={48} />
           <div>
-            <div className="text-xs uppercase tracking-wider text-stone-500">Tentang</div>
+            <div className="text-xs uppercase tracking-wider text-stone-500">{t("about.section")}</div>
             <h1 className="font-display text-3xl sm:text-4xl font-extrabold tracking-tight text-stone-900">
               PelangganKu
             </h1>
           </div>
         </div>
         <div className="text-sm font-semibold text-orange-800 uppercase tracking-widest">
-          Jangkau Ulang Setiap Pembeli
+          {t("brand.tagline")}
         </div>
       </div>
 
       <div className="pp-card p-6 space-y-4">
-        <p className="text-stone-700 leading-relaxed">
-          PelangganKu adalah alat sederhana untuk seller TikTok Shop Indonesia yang <b>tidak diberi akses ke data pembeli mereka sendiri</b>.
-          Aplikasi ini mengubah screenshot halaman detail pesanan menjadi database pelanggan yang bisa Anda cari, filter, dan hubungi ulang lewat WhatsApp.
-        </p>
-        <p className="text-stone-700 leading-relaxed">
-          Tidak ada scraping, tidak ada akses ke API TikTok. Kami hanya membaca screenshot yang Anda upload, mengekstrak nama & alamat dengan AI, lalu menyimpannya dengan rapi — sehingga Anda tetap punya <b>daftar pelanggan sendiri</b>, milik Anda.
-        </p>
+        <p className="text-stone-700 leading-relaxed">{t("about.p1")}</p>
+        <p className="text-stone-700 leading-relaxed">{t("about.p2")}</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <Card icon={Camera} title="Screenshot > Data" body="Ekstrak nama, telepon +62, alamat lengkap, dan kreator afiliasi dari 1 klik." />
-        <Card icon={Database} title="Dedupe Otomatis" body="Nomor telepon sama = pelanggan sama. Order berulang terdeteksi otomatis." />
-        <Card icon={ShoppingBag} title="Segmen & Broadcast" body="Filter berdasarkan kota, tag, creator, lalu siapkan daftar WhatsApp." />
+        <Card icon={Camera} title={t("about.f1.title")} body={t("about.f1.body")} />
+        <Card icon={Database} title={t("about.f2.title")} body={t("about.f2.body")} />
+        <Card icon={ShoppingBag} title={t("about.f3.title")} body={t("about.f3.body")} />
       </div>
 
       <div className="pp-card p-5 flex items-start gap-3" style={{ background: "var(--accent-light)", borderColor: "#FED7AA" }}>
         <Info className="w-5 h-5 text-orange-800 mt-0.5" />
         <div className="text-sm text-stone-800">
-          <b>Versi Demo:</b> Aplikasi sudah dilengkapi ~40 pelanggan contoh dari 6 kota Indonesia. Anda bisa langsung mencoba fitur peta, filter, dan ekspor tanpa upload data terlebih dahulu.
+          <b>{t("about.demoLabel")}</b> {t("about.demoNote").replace(t("about.demoLabel"), "").trim()}
         </div>
       </div>
     </div>
