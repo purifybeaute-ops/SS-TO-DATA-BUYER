@@ -2,14 +2,15 @@ import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
 import { Clock, MessageCircle, AlertOctagon, Search } from "lucide-react";
 import { formatDateShortID, waLink } from "@/lib/format";
-
-const BUCKETS = [
-  { key: "days_30_59", label: "30–59 Hari", color: "#D97706", desc: "Baru diam, sapa singkat sudah cukup." },
-  { key: "days_60_89", label: "60–89 Hari", color: "#C2410C", desc: "Tawarkan produk baru atau diskon kecil." },
-  { key: "days_90_plus", label: "90+ Hari", color: "#991B1B", desc: "Kirim pesan reaktivasi dengan penawaran menarik." },
-];
+import { useT } from "@/lib/i18n.jsx";
 
 export default function Reminder() {
+  const { t } = useT();
+  const BUCKETS = [
+    { key: "days_30_59", label: t("rm.b1.label"), color: "#D97706", desc: t("rm.b1.desc") },
+    { key: "days_60_89", label: t("rm.b2.label"), color: "#C2410C", desc: t("rm.b2.desc") },
+    { key: "days_90_plus", label: t("rm.b3.label"), color: "#991B1B", desc: t("rm.b3.desc") },
+  ];
   const [data, setData] = useState({ counts: {}, buckets: { days_30_59: [], days_60_89: [], days_90_plus: [] } });
   const [waTemplate, setWaTemplate] = useState("");
   const [tab, setTab] = useState("days_60_89");
@@ -32,12 +33,12 @@ export default function Reminder() {
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-5" data-testid="reminder-page">
       <div>
-        <div className="text-xs uppercase tracking-wider text-stone-500 mb-1">Reaktivasi</div>
+        <div className="text-xs uppercase tracking-wider text-stone-500 mb-1">{t("rm.section")}</div>
         <h1 className="font-display text-3xl sm:text-4xl font-extrabold tracking-tight text-stone-900">
-          Segmen Reminder
+          {t("rm.heading")}
         </h1>
         <p className="text-stone-600 mt-2">
-          Pelanggan yang sudah lama tidak order. Sapa mereka sebelum mereka lupa.
+          {t("rm.sub")}
         </p>
       </div>
 
@@ -64,8 +65,8 @@ export default function Reminder() {
       {totalDormant === 0 && (
         <div className="pp-card p-8 text-center">
           <AlertOctagon className="w-8 h-8 text-stone-400 mx-auto mb-2" />
-          <div className="font-semibold text-stone-800">Semua pelanggan Anda masih aktif!</div>
-          <div className="text-sm text-stone-500 mt-1">Belum ada yang tidak order &gt;30 hari.</div>
+          <div className="font-semibold text-stone-800">{t("rm.allActive")}</div>
+          <div className="text-sm text-stone-500 mt-1">{t("rm.noneDormant")}</div>
         </div>
       )}
 
@@ -77,13 +78,13 @@ export default function Reminder() {
               <input
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder="Cari nama, username, atau kota..."
+                placeholder={t("rm.searchPlaceholder")}
                 className="pp-input w-full rounded-lg pl-9 pr-3 py-2 text-sm"
                 data-testid="reminder-search"
               />
             </div>
             <div className="text-sm text-stone-500 ml-auto">
-              {rows.length} dari {data.counts[tab] || 0}
+              {rows.length} {t("common.of")} {data.counts[tab] || 0}
             </div>
           </div>
 
@@ -91,13 +92,13 @@ export default function Reminder() {
             <table className="pp-table">
               <thead>
                 <tr>
-                  <th>Nama</th>
-                  <th>Telepon</th>
-                  <th>Kota</th>
-                  <th>Provinsi</th>
-                  <th>Order</th>
-                  <th>Terakhir Aktif</th>
-                  <th className="text-right">Hari Diam</th>
+                  <th>{t("rm.col.name")}</th>
+                  <th>{t("rm.col.phone")}</th>
+                  <th>{t("rm.col.kota")}</th>
+                  <th>{t("rm.col.provinsi")}</th>
+                  <th>{t("rm.col.order")}</th>
+                  <th>{t("rm.col.lastActive")}</th>
+                  <th className="text-right">{t("rm.col.daysIdle")}</th>
                   <th></th>
                 </tr>
               </thead>
@@ -111,7 +112,7 @@ export default function Reminder() {
                     <td className="font-mono text-center">{c.order_count}</td>
                     <td className="text-xs text-stone-600">{formatDateShortID(c.last_seen)}</td>
                     <td className="text-right font-mono font-semibold" style={{ color: BUCKETS.find((b) => b.key === tab).color }}>
-                      {c.days_since_last_order} hr
+                      {c.days_since_last_order} {t("rm.days")}
                     </td>
                     <td>
                       <a
@@ -120,7 +121,7 @@ export default function Reminder() {
                         className="pp-btn-wa rounded-md px-2.5 py-1 text-xs font-medium inline-flex items-center gap-1"
                         data-testid={`wa-remind-${c.id}`}
                       >
-                        <MessageCircle className="w-3 h-3" /> Sapa
+                        <MessageCircle className="w-3 h-3" /> {t("rm.sapa")}
                       </a>
                     </td>
                   </tr>
@@ -128,14 +129,14 @@ export default function Reminder() {
               </tbody>
             </table>
             {rows.length === 0 && (
-              <div className="py-10 text-center text-sm text-stone-500">Tidak ada pelanggan cocok.</div>
+              <div className="py-10 text-center text-sm text-stone-500">{t("rm.emptyMatch")}</div>
             )}
           </div>
 
           <div className="pp-card p-4 flex items-start gap-3" style={{ background: "var(--accent-light)", borderColor: "#FED7AA" }}>
             <MessageCircle className="w-4 h-4 text-orange-800 mt-0.5" />
             <div className="text-sm text-stone-800">
-              <b>Tips:</b> {BUCKETS.find((b) => b.key === tab).desc} Anda bisa juga menggunakan halaman <a href="/segmen" className="pp-link">Segmen &amp; Export</a> untuk broadcast otomatis dengan jeda.
+              <b>{t("rm.tipsPrefix")}</b> {BUCKETS.find((b) => b.key === tab).desc} {t("rm.tipsSuffix")} <a href="/segmen" className="pp-link">{t("rm.tipsLink")}</a> {t("rm.tipsAfter")}
             </div>
           </div>
         </>

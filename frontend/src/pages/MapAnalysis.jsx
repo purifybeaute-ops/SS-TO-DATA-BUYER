@@ -3,6 +3,7 @@ import { api } from "@/lib/api";
 import ReactECharts from "echarts-for-react";
 import * as echarts from "echarts";
 import { MapPin, Layers, AlertTriangle } from "lucide-react";
+import { useT } from "@/lib/i18n.jsx";
 
 const GEO_URLS = [
   "https://cdn.jsdelivr.net/gh/superpikar/indonesia-geojson@master/indonesia-prov.geojson",
@@ -35,6 +36,7 @@ const MAP_NAME_ALIAS = {
 const COLOR_SCALE = ["#FFEDD5", "#FDBA74", "#FB923C", "#E05206", "#9A3412"];
 
 export default function MapAnalysis() {
+  const { t } = useT();
   const [source, setSource] = useState("both");
   const [data, setData] = useState({ provinsi: [], kota: [], kecamatan: [], repeat_kota: [] });
   const [dashboard, setDashboard] = useState(null);
@@ -113,7 +115,7 @@ export default function MapAnalysis() {
         trigger: "item",
         formatter: (p) => {
           const pct = total ? ((p.value / total) * 100).toFixed(1) : 0;
-          return `<div style="font-family: 'Plus Jakarta Sans'"><b>${p.name}</b><br/>Pembeli: <b>${p.value || 0}</b><br/>${pct}% dari total</div>`;
+          return `<div style="font-family: 'Plus Jakarta Sans'"><b>${p.name}</b><br/>${t("map.tooltip.buyers")}: <b>${p.value || 0}</b><br/>${pct}% ${t("map.tooltip.pct")}</div>`;
         },
       },
       visualMap: {
@@ -121,7 +123,7 @@ export default function MapAnalysis() {
         max: maxVal,
         left: 10,
         bottom: 20,
-        text: ["Banyak", "Sedikit"],
+        text: [t("map.legend.many"), t("map.legend.few")],
         inRange: { color: ["#F5F1E8", ...COLOR_SCALE] },
         textStyle: { color: "#57534E", fontFamily: "Plus Jakarta Sans" },
         calculable: true,
@@ -210,20 +212,20 @@ export default function MapAnalysis() {
     <div className="p-4 sm:p-6 lg:p-8 space-y-5" data-testid="peta-page">
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
         <div>
-          <div className="text-xs uppercase tracking-wider text-stone-500 mb-1">Geografi</div>
+          <div className="text-xs uppercase tracking-wider text-stone-500 mb-1">{t("map.section")}</div>
           <h1 className="font-display text-3xl sm:text-4xl font-extrabold tracking-tight text-stone-900">
-            Peta & Analisis Lokasi
+            {t("map.heading")}
           </h1>
           <p className="text-stone-600 mt-2">
-            Distribusi pembeli berdasarkan data yang sudah dinormalisasi.
+            {t("map.sub")}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <div className="inline-flex rounded-lg overflow-hidden border" style={{ borderColor: "var(--border)" }} data-testid="source-toggle">
             {[
-              { v: "screenshots", l: "Screenshot" },
-              { v: "csv", l: "CSV" },
-              { v: "both", l: "Keduanya" },
+              { v: "screenshots", l: t("map.source.screenshots") },
+              { v: "csv", l: t("map.source.csv") },
+              { v: "both", l: t("map.source.both") },
             ].map((o) => (
               <button
                 key={o.v}
@@ -238,7 +240,7 @@ export default function MapAnalysis() {
           </div>
           <select value={tagFilter} onChange={(e) => setTagFilter(e.target.value)}
                   className="pp-input rounded-lg px-3 py-1.5 text-xs">
-            <option value="">Semua Tag</option>
+            <option value="">{t("map.allTags")}</option>
             {tags.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
           </select>
         </div>
@@ -246,18 +248,18 @@ export default function MapAnalysis() {
 
       {dashboard && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <StatTile label="Total Pelanggan" value={dashboard.total_customers} />
-          <StatTile label="Kota Terjangkau" value={dashboard.total_kota} />
-          <StatTile label="Provinsi Terjangkau" value={dashboard.total_provinsi} />
-          <StatTile label="% Pembeli Berulang" value={`${dashboard.repeat_pct}%`} />
+          <StatTile label={t("map.stat.customers")} value={dashboard.total_customers} />
+          <StatTile label={t("map.stat.cities")} value={dashboard.total_kota} />
+          <StatTile label={t("map.stat.provinces")} value={dashboard.total_provinsi} />
+          <StatTile label={t("map.stat.repeatPct")} value={`${dashboard.repeat_pct}%`} />
         </div>
       )}
 
       {(selectedProv || selectedKota) && (
         <div className="pp-card p-3 flex items-center gap-3 text-sm" style={{ background: "var(--accent-light)", borderColor: "#FED7AA" }}>
           <Layers className="w-4 h-4 text-orange-800" />
-          <span>Filter aktif: {selectedProv && <b>{selectedProv}</b>} {selectedKota && <> · <b>{selectedKota}</b></>}</span>
-          <button onClick={() => { setSelectedProv(null); setSelectedKota(null); }} className="ml-auto text-xs pp-link">Hapus filter</button>
+          <span>{t("map.filterActive")} {selectedProv && <b>{selectedProv}</b>} {selectedKota && <> · <b>{selectedKota}</b></>}</span>
+          <button onClick={() => { setSelectedProv(null); setSelectedKota(null); }} className="ml-auto text-xs pp-link">{t("map.clearFilter")}</button>
         </div>
       )}
 
@@ -265,7 +267,7 @@ export default function MapAnalysis() {
         <div className="pp-card p-3 sm:p-5" data-testid="map-indonesia-echarts">
           <div className="flex items-center gap-2 mb-3">
             <MapPin className="w-4 h-4 text-orange-700" />
-            <h2 className="font-display font-bold text-lg">Peta Sebaran Pembeli — 38 Provinsi</h2>
+            <h2 className="font-display font-bold text-lg">{t("map.title38")}</h2>
           </div>
           {mapReady ? (
             <ReactECharts
@@ -275,12 +277,12 @@ export default function MapAnalysis() {
             />
           ) : (
             <div className="h-[480px] flex items-center justify-center text-sm text-stone-500">
-              Memuat peta Indonesia...
+              {t("map.loading")}
             </div>
           )}
           {unmatched.length > 0 && (
             <div className="mt-3 p-3 rounded-lg text-xs" style={{ background: "#FEF3C7", color: "#854D0E" }}>
-              <div className="font-semibold flex items-center gap-1 mb-1"><AlertTriangle className="w-3 h-3" /> Provinsi tidak cocok peta ({unmatched.length})</div>
+              <div className="font-semibold flex items-center gap-1 mb-1"><AlertTriangle className="w-3 h-3" /> {t("map.unmatched", { n: unmatched.length })}</div>
               <div>{unmatched.map((u) => `${u.name} (${u.count})`).join(" · ")}</div>
             </div>
           )}
@@ -289,13 +291,13 @@ export default function MapAnalysis() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="pp-card p-5" data-testid="chart-top-provinsi">
-          <h3 className="font-display font-bold text-base mb-2">Peringkat Provinsi</h3>
+          <h3 className="font-display font-bold text-base mb-2">{t("map.rankProv")}</h3>
           {data.provinsi.length ? (
             <ReactECharts option={provChart} style={{ height: 380 }} />
           ) : <EmptyChart />}
         </div>
         <div className="pp-card p-5" data-testid="chart-top-kota">
-          <h3 className="font-display font-bold text-base mb-2">Top 15 Kota</h3>
+          <h3 className="font-display font-bold text-base mb-2">{t("map.top15Kota")}</h3>
           {data.kota.length ? (
             <ReactECharts option={kotaChart} style={{ height: 380 }} />
           ) : <EmptyChart />}
@@ -305,16 +307,16 @@ export default function MapAnalysis() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="pp-card p-5">
           <h3 className="font-display font-bold text-base mb-2">
-            {selectedProv ? `Kecamatan di ${selectedProv}` : selectedKota ? `Kecamatan di ${selectedKota}` : "Peringkat Kecamatan"}
+            {selectedProv ? t("map.kecOf", { name: selectedProv }) : selectedKota ? t("map.kecOf", { name: selectedKota }) : t("map.rankKec")}
           </h3>
           {data.kecamatan.length ? (
             <ReactECharts option={kecChart} style={{ height: 320 }} />
           ) : (
-            <div className="text-sm text-stone-500 py-8 text-center">Pilih provinsi atau kota di atas untuk drill-down.</div>
+            <div className="text-sm text-stone-500 py-8 text-center">{t("map.kecEmpty")}</div>
           )}
         </div>
         <div className="pp-card p-5">
-          <h3 className="font-display font-bold text-base mb-2">Konsentrasi Pembeli Berulang (per Kota)</h3>
+          <h3 className="font-display font-bold text-base mb-2">{t("map.repeatCity")}</h3>
           {data.repeat_kota.length ? (
             <div className="space-y-2 max-h-[320px] overflow-y-auto pr-1">
               {data.repeat_kota.slice(0, 15).map((r, i) => (
@@ -326,7 +328,7 @@ export default function MapAnalysis() {
               ))}
             </div>
           ) : (
-            <div className="text-sm text-stone-500 py-8 text-center">Belum ada pembeli berulang tercatat.</div>
+            <div className="text-sm text-stone-500 py-8 text-center">{t("map.noRepeat")}</div>
           )}
         </div>
       </div>
@@ -344,5 +346,6 @@ function StatTile({ label, value }) {
 }
 
 function EmptyChart() {
-  return <div className="h-[300px] flex items-center justify-center text-sm text-stone-500">Belum ada data.</div>;
+  const { t } = useT();
+  return <div className="h-[300px] flex items-center justify-center text-sm text-stone-500">{t("common.empty")}</div>;
 }

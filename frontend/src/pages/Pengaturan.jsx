@@ -3,35 +3,37 @@ import { api } from "@/lib/api";
 import { toast } from "sonner";
 import { Trash2, Plus, Save, MessageCircle, MapPin, Tag as TagIcon, Users, FileText, Upload as UploadIcon, Image as ImageIcon } from "lucide-react";
 import { useAuth } from "@/lib/auth.jsx";
+import { useT } from "@/lib/i18n.jsx";
 
-const TABS = [
-  { key: "norm", label: "Normalisasi Wilayah", icon: MapPin },
-  { key: "tags", label: "Tag Khusus", icon: TagIcon },
-  { key: "wa", label: "Template WA", icon: MessageCircle },
-  { key: "pdf", label: "Header PDF", icon: FileText },
-  { key: "csv", label: "Mapping CSV", icon: MapPin },
-  { key: "users", label: "Operator", icon: Users },
+const TAB_META = [
+  { key: "norm", labelKey: "st.tab.norm", icon: MapPin },
+  { key: "tags", labelKey: "st.tab.tags", icon: TagIcon },
+  { key: "wa", labelKey: "st.tab.wa", icon: MessageCircle },
+  { key: "pdf", labelKey: "st.tab.pdf", icon: FileText },
+  { key: "csv", labelKey: "st.tab.csv", icon: MapPin },
+  { key: "users", labelKey: "st.tab.users", icon: Users },
 ];
 
 export default function Pengaturan() {
+  const { t } = useT();
   const { isOwner } = useAuth();
   const [tab, setTab] = useState("norm");
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-5" data-testid="pengaturan-page">
       <div>
-        <div className="text-xs uppercase tracking-wider text-stone-500 mb-1">Konfigurasi</div>
-        <h1 className="font-display text-3xl sm:text-4xl font-extrabold tracking-tight text-stone-900">Pengaturan</h1>
-        {!isOwner && <p className="text-xs text-amber-800 mt-2">Sebagian pengaturan hanya bisa diubah oleh owner.</p>}
+        <div className="text-xs uppercase tracking-wider text-stone-500 mb-1">{t("st.section")}</div>
+        <h1 className="font-display text-3xl sm:text-4xl font-extrabold tracking-tight text-stone-900">{t("st.heading")}</h1>
+        {!isOwner && <p className="text-xs text-amber-800 mt-2">{t("st.ownerOnly")}</p>}
       </div>
 
       <div className="flex flex-wrap gap-1 border-b" style={{ borderColor: "var(--border)" }}>
-        {TABS.map((t) => (
-          <button key={t.key} onClick={() => setTab(t.key)} data-testid={`tab-${t.key}`}
+        {TAB_META.map((tt) => (
+          <button key={tt.key} onClick={() => setTab(tt.key)} data-testid={`tab-${tt.key}`}
                   className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
-                    tab === t.key ? "border-orange-700 text-orange-800" : "border-transparent text-stone-600 hover:text-stone-900"
+                    tab === tt.key ? "border-orange-700 text-orange-800" : "border-transparent text-stone-600 hover:text-stone-900"
                   }`}>
-            <t.icon className="w-3.5 h-3.5 inline mr-1.5" />{t.label}
+            <tt.icon className="w-3.5 h-3.5 inline mr-1.5" />{t(tt.labelKey)}
           </button>
         ))}
       </div>
@@ -48,6 +50,7 @@ export default function Pengaturan() {
 
 // ---------------- Normalization ----------------
 function NormPanel({ isOwner }) {
+  const { t } = useT();
   const [rules, setRules] = useState([]);
   const [unmapped, setUnmapped] = useState([]);
   const [form, setForm] = useState({ raw: "", normalized: "", level: "provinsi" });
@@ -59,43 +62,43 @@ function NormPanel({ isOwner }) {
   useEffect(load, []);
 
   const add = async () => {
-    if (!form.raw || !form.normalized) return toast.error("Isi kedua field");
+    if (!form.raw || !form.normalized) return toast.error(t("st.norm.fillBoth"));
     await api.post("/normalization/rules", form);
-    toast.success("Aturan ditambahkan");
+    toast.success(t("st.norm.added"));
     setForm({ raw: "", normalized: "", level: form.level });
     load();
   };
   const del = async (id) => {
     await api.delete(`/normalization/rules/${id}`);
-    toast.success("Aturan dihapus");
+    toast.success(t("st.norm.deleted"));
     load();
   };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
       <div className="lg:col-span-2 pp-card p-5">
-        <h3 className="font-display font-bold mb-3">Aturan Aktif ({rules.length})</h3>
+        <h3 className="font-display font-bold mb-3">{t("st.norm.title", { n: rules.length })}</h3>
         {isOwner && (
           <div className="flex flex-wrap gap-2 mb-3 pb-3 border-b" style={{ borderColor: "var(--border)" }}>
             <input value={form.raw} onChange={(e) => setForm({ ...form, raw: e.target.value })}
-                   placeholder="Nilai mentah (mis. West Java)" className="pp-input rounded-md px-2.5 py-1.5 text-sm flex-1" data-testid="norm-raw" />
+                   placeholder={t("st.norm.rawPh")} className="pp-input rounded-md px-2.5 py-1.5 text-sm flex-1" data-testid="norm-raw" />
             <input value={form.normalized} onChange={(e) => setForm({ ...form, normalized: e.target.value })}
-                   placeholder="Nilai baku (mis. Jawa Barat)" className="pp-input rounded-md px-2.5 py-1.5 text-sm flex-1" data-testid="norm-normalized" />
+                   placeholder={t("st.norm.normPh")} className="pp-input rounded-md px-2.5 py-1.5 text-sm flex-1" data-testid="norm-normalized" />
             <select value={form.level} onChange={(e) => setForm({ ...form, level: e.target.value })}
                     className="pp-input rounded-md px-2.5 py-1.5 text-sm">
-              <option value="provinsi">Provinsi</option>
-              <option value="kota">Kota</option>
+              <option value="provinsi">{t("st.norm.provinsi")}</option>
+              <option value="kota">{t("st.norm.kota")}</option>
             </select>
             <button onClick={add} className="pp-btn-primary rounded-md px-3 py-1.5 text-sm inline-flex items-center gap-1"
                     data-testid="norm-add">
-              <Plus className="w-3 h-3" /> Tambah
+              <Plus className="w-3 h-3" /> {t("st.norm.add")}
             </button>
           </div>
         )}
         <div className="max-h-96 overflow-y-auto">
           <table className="pp-table">
             <thead>
-              <tr><th>Nilai Mentah</th><th>Baku</th><th>Level</th><th></th></tr>
+              <tr><th>{t("st.norm.col.raw")}</th><th>{t("st.norm.col.norm")}</th><th>{t("st.norm.col.level")}</th><th></th></tr>
             </thead>
             <tbody>
               {rules.map((r) => (
@@ -113,10 +116,10 @@ function NormPanel({ isOwner }) {
         </div>
       </div>
       <div className="pp-card p-5">
-        <h3 className="font-display font-bold mb-2">Nilai Belum Dipetakan ({unmapped.length})</h3>
-        <p className="text-xs text-stone-500 mb-3">Muncul dari CSV/screenshot tapi belum ada aturannya.</p>
+        <h3 className="font-display font-bold mb-2">{t("st.norm.unmapped", { n: unmapped.length })}</h3>
+        <p className="text-xs text-stone-500 mb-3">{t("st.norm.unmappedSub")}</p>
         {unmapped.length === 0 ? (
-          <div className="text-sm text-stone-500 py-6 text-center">Semua nilai sudah terpetakan!</div>
+          <div className="text-sm text-stone-500 py-6 text-center">{t("st.norm.unmappedEmpty")}</div>
         ) : (
           <div className="space-y-2 max-h-80 overflow-y-auto">
             {unmapped.map((u) => (
@@ -127,7 +130,7 @@ function NormPanel({ isOwner }) {
                 </div>
                 {isOwner && (
                   <button onClick={() => setForm({ raw: u.raw, normalized: "", level: u.level })}
-                          className="text-xs pp-link">Petakan</button>
+                          className="text-xs pp-link">{t("st.norm.map")}</button>
                 )}
               </div>
             ))}
@@ -140,6 +143,7 @@ function NormPanel({ isOwner }) {
 
 // ---------------- Tags ----------------
 function TagsPanel({ isOwner }) {
+  const { t } = useT();
   const [tags, setTags] = useState([]);
   const [form, setForm] = useState({ name: "", color: "#C2410C" });
 
@@ -149,51 +153,51 @@ function TagsPanel({ isOwner }) {
   const add = async () => {
     if (!form.name) return;
     await api.post("/tags", form);
-    toast.success("Tag ditambah");
+    toast.success(t("st.tags.added"));
     setForm({ name: "", color: "#C2410C" });
     load();
   };
-  const update = async (t) => {
-    await api.patch(`/tags/${t.id}`, { name: t.name, color: t.color });
-    toast.success("Tag diperbarui");
+  const update = async (tg) => {
+    await api.patch(`/tags/${tg.id}`, { name: tg.name, color: tg.color });
+    toast.success(t("st.tags.updated"));
     load();
   };
   const del = async (id) => {
-    if (!window.confirm("Hapus tag ini dari semua pelanggan?")) return;
+    if (!window.confirm(t("st.tags.confirmDelete"))) return;
     await api.delete(`/tags/${id}`);
-    toast.success("Tag dihapus");
+    toast.success(t("st.tags.deleted"));
     load();
   };
 
   return (
     <div className="pp-card p-5">
-      <h3 className="font-display font-bold mb-3">Tag Khusus Pelanggan</h3>
+      <h3 className="font-display font-bold mb-3">{t("st.tags.title")}</h3>
       {isOwner && (
         <div className="flex flex-wrap gap-2 mb-4 pb-3 border-b" style={{ borderColor: "var(--border)" }}>
           <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
-                 placeholder="Nama tag" className="pp-input rounded-md px-2.5 py-1.5 text-sm flex-1" data-testid="tag-name" />
+                 placeholder={t("st.tags.namePh")} className="pp-input rounded-md px-2.5 py-1.5 text-sm flex-1" data-testid="tag-name" />
           <input type="color" value={form.color} onChange={(e) => setForm({ ...form, color: e.target.value })}
                  className="pp-input rounded-md w-14 h-9" data-testid="tag-color" />
           <button onClick={add} className="pp-btn-primary rounded-md px-3 py-1.5 text-sm inline-flex items-center gap-1"
                   data-testid="tag-add">
-            <Plus className="w-3 h-3" /> Tambah
+            <Plus className="w-3 h-3" /> {t("st.tags.add")}
           </button>
         </div>
       )}
       <div className="space-y-2 max-h-96 overflow-y-auto">
-        {tags.map((t, i) => (
-          <div key={t.id} className="flex items-center gap-2 p-2 rounded-md" style={{ background: "var(--surface-muted)" }}>
-            <input type="color" value={t.color} disabled={!isOwner}
+        {tags.map((tg, i) => (
+          <div key={tg.id} className="flex items-center gap-2 p-2 rounded-md" style={{ background: "var(--surface-muted)" }}>
+            <input type="color" value={tg.color} disabled={!isOwner}
                    onChange={(e) => setTags((prev) => prev.map((x, j) => j === i ? { ...x, color: e.target.value } : x))}
                    className="w-8 h-8 rounded" />
-            <input value={t.name} disabled={!isOwner}
+            <input value={tg.name} disabled={!isOwner}
                    onChange={(e) => setTags((prev) => prev.map((x, j) => j === i ? { ...x, name: e.target.value } : x))}
                    className="pp-input rounded-md px-2 py-1 text-sm flex-1" />
-            <span className="pp-badge" style={{ background: `${t.color}20`, color: t.color, borderColor: `${t.color}55` }}>{t.name}</span>
+            <span className="pp-badge" style={{ background: `${tg.color}20`, color: tg.color, borderColor: `${tg.color}55` }}>{tg.name}</span>
             {isOwner && (
               <>
-                <button onClick={() => update(t)} className="text-xs pp-link">Simpan</button>
-                <button onClick={() => del(t.id)} className="text-red-700 hover:underline text-xs"><Trash2 className="w-3 h-3" /></button>
+                <button onClick={() => update(tg)} className="text-xs pp-link">{t("st.tags.saveEach")}</button>
+                <button onClick={() => del(tg.id)} className="text-red-700 hover:underline text-xs"><Trash2 className="w-3 h-3" /></button>
               </>
             )}
           </div>
@@ -205,23 +209,24 @@ function TagsPanel({ isOwner }) {
 
 // ---------------- WA Template ----------------
 function WaPanel({ isOwner }) {
+  const { t } = useT();
   const [tpl, setTpl] = useState("");
   useEffect(() => { api.get("/settings/wa_template").then((r) => setTpl(r.data?.value || "")); }, []);
   const save = async () => {
     await api.put("/settings/wa_template", { value: tpl });
-    toast.success("Template WA disimpan");
+    toast.success(t("st.wa.saved"));
   };
   return (
     <div className="pp-card p-5 max-w-2xl">
-      <h3 className="font-display font-bold mb-2">Template Pesan WhatsApp Default</h3>
-      <p className="text-xs text-stone-500 mb-3">Gunakan <code className="bg-stone-100 px-1 rounded">{"{nama}"}</code> untuk mengisi nama pelanggan otomatis.</p>
+      <h3 className="font-display font-bold mb-2">{t("st.wa.title")}</h3>
+      <p className="text-xs text-stone-500 mb-3">{t("st.wa.helpUse")} <code className="bg-stone-100 px-1 rounded">{"{nama}"}</code> {t("st.wa.help")}</p>
       <textarea value={tpl} onChange={(e) => setTpl(e.target.value)} rows={5} disabled={!isOwner}
                 className="pp-input rounded-md px-3 py-2 text-sm w-full font-mono"
                 data-testid="wa-template-textarea" />
       {isOwner && (
         <button onClick={save} className="pp-btn-primary rounded-md px-4 py-2 text-sm inline-flex items-center gap-2 mt-3"
                 data-testid="wa-template-save">
-          <Save className="w-4 h-4" /> Simpan
+          <Save className="w-4 h-4" /> {t("st.wa.save")}
         </button>
       )}
     </div>
@@ -230,6 +235,7 @@ function WaPanel({ isOwner }) {
 
 // ---------------- PDF Header ----------------
 function PdfHeaderPanel({ isOwner }) {
+  const { t } = useT();
   const [cfg, setCfg] = useState({ shop_name: "", note: "", logo_data_url: "" });
   const [loading, setLoading] = useState(true);
 
@@ -242,9 +248,8 @@ function PdfHeaderPanel({ isOwner }) {
 
   const onLogo = async (file) => {
     if (!file) return;
-    if (!/image\/(png|jpe?g|webp)/i.test(file.type)) return toast.error("Hanya PNG, JPG, atau WEBP");
-    if (file.size > 1_500_000) return toast.error("Ukuran logo maksimal 1,5MB");
-    // Resize to max 400px width using canvas to keep PDF file small
+    if (!/image\/(png|jpe?g|webp)/i.test(file.type)) return toast.error(t("st.pdf.errFormat"));
+    if (file.size > 1_500_000) return toast.error(t("st.pdf.errSize"));
     const dataUrl = await new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => {
@@ -266,81 +271,81 @@ function PdfHeaderPanel({ isOwner }) {
       reader.readAsDataURL(file);
     });
     setCfg((p) => ({ ...p, logo_data_url: dataUrl }));
-    toast.success("Logo diproses. Klik Simpan untuk menerapkan.");
+    toast.success(t("st.pdf.logoOk"));
   };
 
   const removeLogo = () => setCfg((p) => ({ ...p, logo_data_url: "" }));
 
   const save = async () => {
     await api.put("/settings/pdf_header", { value: cfg });
-    toast.success("Header PDF disimpan");
+    toast.success(t("st.pdf.saved"));
   };
 
-  if (loading) return <div className="text-sm text-stone-500">Memuat...</div>;
+  if (loading) return <div className="text-sm text-stone-500">{t("common.loading")}</div>;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <div className="pp-card p-5 space-y-4">
         <div>
-          <h3 className="font-display font-bold text-lg">Header PDF Ekspor</h3>
+          <h3 className="font-display font-bold text-lg">{t("st.pdf.title")}</h3>
           <p className="text-xs text-stone-500 mt-1">
-            Nama toko, logo, dan catatan singkat yang tercetak di atas setiap PDF segmen.
+            {t("st.pdf.sub")}
           </p>
         </div>
 
         <div>
-          <label className="text-xs uppercase tracking-wider font-semibold text-stone-500 block mb-1">Nama Toko</label>
+          <label className="text-xs uppercase tracking-wider font-semibold text-stone-500 block mb-1">{t("st.pdf.shopName")}</label>
           <input value={cfg.shop_name} onChange={(e) => setCfg({ ...cfg, shop_name: e.target.value })}
-                 placeholder="mis. Purify Beaute Official" disabled={!isOwner}
+                 placeholder={t("st.pdf.shopNamePh")} disabled={!isOwner}
                  className="pp-input rounded-md px-2.5 py-1.5 text-sm w-full" data-testid="pdf-shop-name" />
         </div>
 
         <div>
-          <label className="text-xs uppercase tracking-wider font-semibold text-stone-500 block mb-1">Catatan Singkat</label>
+          <label className="text-xs uppercase tracking-wider font-semibold text-stone-500 block mb-1">{t("st.pdf.note")}</label>
           <textarea value={cfg.note} onChange={(e) => setCfg({ ...cfg, note: e.target.value })}
-                    rows={3} placeholder="mis. Rekap pelanggan periode Februari 2026 · dikirim ke tim admin"
+                    rows={3} placeholder={t("st.pdf.notePh")}
                     disabled={!isOwner}
                     className="pp-input rounded-md px-2.5 py-2 text-sm w-full" data-testid="pdf-note" />
-          <div className="text-[10px] text-stone-500 mt-1">Boleh multi-baris. Muncul di bawah nama toko.</div>
+          <div className="text-[10px] text-stone-500 mt-1">{t("st.pdf.noteHint")}</div>
         </div>
 
         <div>
           <label className="text-xs uppercase tracking-wider font-semibold text-stone-500 block mb-2 flex items-center gap-1">
-            <ImageIcon className="w-3 h-3" /> Logo Toko
+            <ImageIcon className="w-3 h-3" /> {t("st.pdf.logo")}
           </label>
           <div className="flex items-center gap-3">
             <label className="pp-btn-secondary rounded-md px-3 py-1.5 text-sm inline-flex items-center gap-2 cursor-pointer"
                    data-testid="pdf-logo-upload">
-              <UploadIcon className="w-4 h-4" /> {cfg.logo_data_url ? "Ganti Logo" : "Upload Logo"}
+              <UploadIcon className="w-4 h-4" /> {cfg.logo_data_url ? t("st.pdf.replace") : t("st.pdf.upload")}
               <input type="file" accept="image/png,image/jpeg,image/webp" hidden disabled={!isOwner}
                      onChange={(e) => onLogo(e.target.files?.[0])} />
             </label>
             {cfg.logo_data_url && isOwner && (
               <button onClick={removeLogo} className="text-xs text-red-700 hover:underline inline-flex items-center gap-1">
-                <Trash2 className="w-3 h-3" /> Hapus
+                <Trash2 className="w-3 h-3" /> {t("common.delete")}
               </button>
             )}
           </div>
-          <div className="text-[10px] text-stone-500 mt-1">PNG/JPG/WEBP, otomatis di-resize ke max 400px.</div>
+          <div className="text-[10px] text-stone-500 mt-1">{t("st.pdf.logoHint")}</div>
         </div>
 
         {isOwner && (
           <button onClick={save} className="pp-btn-primary rounded-md px-4 py-2 text-sm font-semibold inline-flex items-center gap-2"
                   data-testid="pdf-header-save">
-            <Save className="w-4 h-4" /> Simpan Header PDF
+            <Save className="w-4 h-4" /> {t("st.pdf.save")}
           </button>
         )}
       </div>
 
       <div className="pp-card p-5">
-        <div className="text-xs uppercase tracking-wider font-semibold text-stone-500 mb-3">Preview Header</div>
+        <div className="text-xs uppercase tracking-wider font-semibold text-stone-500 mb-3">{t("st.pdf.preview")}</div>
         <div className="border rounded-lg p-4 flex items-start gap-3" style={{ borderColor: "var(--border)", background: "#fff" }}>
           {cfg.logo_data_url ? (
             <img src={cfg.logo_data_url} alt="Logo" className="w-20 h-20 object-contain rounded" style={{ background: "#F3EFE6" }} />
           ) : (
             <div className="w-20 h-20 rounded flex items-center justify-center text-[10px] text-stone-400 text-center px-1"
                  style={{ background: "#F3EFE6" }}>
-              (belum ada logo)
+              {t("st.pdf.noLogo")}
             </div>
           )}
           <div className="flex-1 min-w-0">
@@ -348,15 +353,15 @@ function PdfHeaderPanel({ isOwner }) {
               {cfg.shop_name || "PelangganKu"}
             </div>
             <div className="text-xs text-stone-600 whitespace-pre-line mt-0.5">
-              {cfg.note || <span className="text-stone-400 italic">(belum ada catatan)</span>}
+              {cfg.note || <span className="text-stone-400 italic">{t("st.pdf.noNote")}</span>}
             </div>
             <div className="border-t mt-2 pt-2" style={{ borderColor: "#C2410C" }}>
-              <div className="font-bold text-stone-900 text-sm">Segmen Pelanggan — Semua</div>
-              <div className="text-[10px] text-stone-500">Dibuat 20/02/2026 15:30 · Total 45 pelanggan</div>
+              <div className="font-bold text-stone-900 text-sm">{t("st.pdf.previewTitle")}</div>
+              <div className="text-[10px] text-stone-500">{t("st.pdf.previewMeta")}</div>
             </div>
           </div>
         </div>
-        <div className="text-[10px] text-stone-500 mt-2">Ini pratinjau kasar. Layout final akan tercetak di kertas A4 landscape.</div>
+        <div className="text-[10px] text-stone-500 mt-2">{t("st.pdf.previewCaption")}</div>
       </div>
     </div>
   );
@@ -364,11 +369,12 @@ function PdfHeaderPanel({ isOwner }) {
 
 // ---------------- CSV Mapping ----------------
 function CsvMappingPanel({ isOwner }) {
+  const { t } = useT();
   const [map, setMap] = useState({});
   useEffect(() => { api.get("/settings/csv_mapping").then((r) => setMap(r.data?.value || {})); }, []);
   const save = async () => {
     await api.put("/settings/csv_mapping", { value: map });
-    toast.success("Mapping CSV disimpan");
+    toast.success(t("st.csv.saved"));
   };
   const KEYS = [
     ["order_id", "Order ID"],
@@ -380,7 +386,7 @@ function CsvMappingPanel({ isOwner }) {
   ];
   return (
     <div className="pp-card p-5 max-w-2xl">
-      <h3 className="font-display font-bold mb-3">Mapping Kolom CSV TikTok Shop</h3>
+      <h3 className="font-display font-bold mb-3">{t("st.csv.title")}</h3>
       <div className="space-y-2">
         {KEYS.map(([k, def]) => (
           <div key={k} className="grid grid-cols-2 gap-2 items-center">
@@ -393,7 +399,7 @@ function CsvMappingPanel({ isOwner }) {
       </div>
       {isOwner && (
         <button onClick={save} className="pp-btn-primary rounded-md px-4 py-2 text-sm inline-flex items-center gap-2 mt-4">
-          <Save className="w-4 h-4" /> Simpan Mapping
+          <Save className="w-4 h-4" /> {t("st.csv.save")}
         </button>
       )}
     </div>
@@ -402,6 +408,7 @@ function CsvMappingPanel({ isOwner }) {
 
 // ---------------- Users ----------------
 function UsersPanel({ isOwner }) {
+  const { t } = useT();
   const [users, setUsers] = useState([]);
   const [form, setForm] = useState({ email: "", password: "", name: "" });
   const load = () => {
@@ -410,29 +417,29 @@ function UsersPanel({ isOwner }) {
   };
   useEffect(load, [isOwner]);
   const add = async () => {
-    if (!form.email || !form.password) return toast.error("Email & password wajib");
+    if (!form.email || !form.password) return toast.error(t("st.users.needEmail"));
     try {
       await api.post("/auth/register", { ...form, role: "operator" });
-      toast.success("Operator ditambahkan");
+      toast.success(t("st.users.added"));
       setForm({ email: "", password: "", name: "" });
       load();
     } catch (e) {
-      toast.error(e?.response?.data?.detail || "Gagal");
+      toast.error(e?.response?.data?.detail || t("st.users.fail"));
     }
   };
-  if (!isOwner) return <div className="pp-card p-5 text-sm text-stone-500">Hanya owner yang bisa mengelola operator.</div>;
+  if (!isOwner) return <div className="pp-card p-5 text-sm text-stone-500">{t("st.users.deny")}</div>;
   return (
     <div className="pp-card p-5 max-w-2xl">
-      <h3 className="font-display font-bold mb-3">Operator Toko</h3>
+      <h3 className="font-display font-bold mb-3">{t("st.users.title")}</h3>
       <div className="flex flex-wrap gap-2 mb-4 pb-3 border-b" style={{ borderColor: "var(--border)" }}>
         <input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })}
-               placeholder="email" className="pp-input rounded-md px-2.5 py-1.5 text-sm flex-1" data-testid="op-email" />
+               placeholder={t("st.users.emailPh")} className="pp-input rounded-md px-2.5 py-1.5 text-sm flex-1" data-testid="op-email" />
         <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
-               placeholder="nama" className="pp-input rounded-md px-2.5 py-1.5 text-sm flex-1" data-testid="op-name" />
+               placeholder={t("st.users.namePh")} className="pp-input rounded-md px-2.5 py-1.5 text-sm flex-1" data-testid="op-name" />
         <input value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })}
-               placeholder="password" type="password" className="pp-input rounded-md px-2.5 py-1.5 text-sm w-32" data-testid="op-password" />
+               placeholder={t("st.users.pwPh")} type="password" className="pp-input rounded-md px-2.5 py-1.5 text-sm w-32" data-testid="op-password" />
         <button onClick={add} className="pp-btn-primary rounded-md px-3 py-1.5 text-sm inline-flex items-center gap-1" data-testid="op-add">
-          <Plus className="w-3 h-3" /> Tambah
+          <Plus className="w-3 h-3" /> {t("st.users.add")}
         </button>
       </div>
       <div className="space-y-2">

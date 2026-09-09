@@ -8,6 +8,8 @@ export const api = axios.create({ baseURL: API });
 api.interceptors.request.use((cfg) => {
   const token = localStorage.getItem("pp_token");
   if (token) cfg.headers.Authorization = `Bearer ${token}`;
+  const lang = localStorage.getItem("pp_lang") === "en" ? "en" : "id";
+  cfg.headers["Accept-Language"] = lang;
   return cfg;
 });
 

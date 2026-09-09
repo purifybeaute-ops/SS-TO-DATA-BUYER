@@ -28,6 +28,7 @@ from auth import (
 )
 from vision_service import extract_from_image, normalize_phone, parse_address
 from seed_data import seed_all
+from i18n import T, set_lang
 
 # ---------------------------------------------------------------------------
 # MongoDB
@@ -40,6 +41,14 @@ app = FastAPI(title="PelangganKu API")
 api = APIRouter(prefix="/api")
 logger = logging.getLogger("petapembeli")
 logging.basicConfig(level=logging.INFO)
+
+
+@app.middleware("http")
+async def lang_middleware(request, call_next):
+    """Pick up Accept-Language header (id/en) and store in ContextVar."""
+    hdr = request.headers.get("accept-language", "id")
+    set_lang(hdr)
+    return await call_next(request)
 
 
 # ---------------------------------------------------------------------------
@@ -111,7 +120,7 @@ class RegisterIn(BaseModel):
 async def login(body: LoginIn):
     user = await db.users.find_one({"email": body.email.lower()})
     if not user or not verify_password(body.password, user["password_hash"]):
-        raise HTTPException(status_code=401, detail="Email atau password salah")
+        raise HTTPException(status_code=401, detail=T("auth.invalid_credentials"))
     token = create_token(user["id"], user["email"], user["role"])
     return {
         "token": token,
@@ -128,7 +137,7 @@ async def login(body: LoginIn):
 async def me(user=Depends(get_current_user)):
     doc = await db.users.find_one({"id": user["sub"]})
     if not doc:
-        raise HTTPException(status_code=404, detail="User tidak ditemukan")
+        raise HTTPException(status_code=404, detail=T("auth.user_not_found"))
     return {
         "id": doc["id"],
         "email": doc["email"],
@@ -140,7 +149,7 @@ async def me(user=Depends(get_current_user)):
 @api.post("/auth/register")
 async def register(body: RegisterIn, owner=Depends(require_owner)):
     if await db.users.find_one({"email": body.email.lower()}):
-        raise HTTPException(status_code=400, detail="Email sudah terdaftar")
+        raise HTTPException(status_code=400, detail=T("auth.email_exists"))
     doc = {
         "id": str(uuid.uuid4()),
         "email": body.email.lower(),
@@ -178,7 +187,7 @@ async def vision_extract(body: ExtractIn, user=Depends(get_current_user)):
         data = await extract_from_image(b64)
     except Exception as e:
         logger.exception("Vision extraction failed")
-        raise HTTPException(status_code=500, detail=f"Ekstraksi gagal: {e}")
+        raise HTTPException(status_code=500, detail=T("vision.failed_detail", err=e))
     return {"filename": body.filename, "extracted": data}
 
 
@@ -327,7 +336,7 @@ async def list_customers(
 async def get_customer(cid: str, user=Depends(get_current_user)):
     cust = await db.customers.find_one({"id": cid}, {"_id": 0})
     if not cust:
-        raise HTTPException(status_code=404, detail="Pelanggan tidak ditemukan")
+        raise HTTPException(status_code=404, detail=T("customer.not_found"))
     orders = await db.orders.find({"customer_id": cid}, {"_id": 0}).sort("created_at", -1).to_list(500)
     return {"customer": cust, "orders": orders}
 
@@ -345,7 +354,7 @@ async def patch_customer(cid: str, body: CustomerPatch, user=Depends(get_current
         return {"ok": True}
     result = await db.customers.update_one({"id": cid}, {"$set": update})
     if result.matched_count == 0:
-        raise HTTPException(status_code=404, detail="Pelanggan tidak ditemukan")
+        raise HTTPException(status_code=404, detail=T("customer.not_found"))
     await log_audit(user, "customer.update", "customer", cid, {"fields": list(update.keys())})
     return {"ok": True}
 
@@ -361,7 +370,7 @@ class BulkCustomerUpdate(BaseModel):
 @api.post("/customers/bulk")
 async def bulk_update_customers(body: BulkCustomerUpdate, user=Depends(get_current_user)):
     if not body.ids:
-        raise HTTPException(status_code=400, detail="Pilih minimal 1 pelanggan")
+        raise HTTPException(status_code=400, detail=T("customer.select_min"))
     updated = 0
     for cid in body.ids:
         ops: Dict[str, Any] = {}
@@ -896,10 +905,10 @@ async def _process_zip_job(job_id: str, zip_bytes: bytes):
 @api.post("/vision/extract-zip")
 async def vision_extract_zip(file: UploadFile = File(...), user=Depends(get_current_user)):
     if not (file.filename or "").lower().endswith(".zip"):
-        raise HTTPException(status_code=400, detail="File harus berformat .zip")
+        raise HTTPException(status_code=400, detail=T("zip.must_be_zip"))
     content = await file.read()
     if len(content) > 200 * 1024 * 1024:
-        raise HTTPException(status_code=400, detail="Ukuran ZIP maksimal 200MB")
+        raise HTTPException(status_code=400, detail=T("zip.too_large"))
     job_id = str(uuid.uuid4())
     now = now_iso()
     await db.vision_jobs.insert_one({
@@ -923,7 +932,7 @@ async def vision_extract_zip(file: UploadFile = File(...), user=Depends(get_curr
 async def get_vision_job(job_id: str, user=Depends(get_current_user)):
     job = await db.vision_jobs.find_one({"id": job_id}, {"_id": 0})
     if not job:
-        raise HTTPException(status_code=404, detail="Job tidak ditemukan")
+        raise HTTPException(status_code=404, detail=T("job.not_found"))
     return job
 
 

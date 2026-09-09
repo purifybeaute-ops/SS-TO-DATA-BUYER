@@ -3,8 +3,10 @@ import { api } from "@/lib/api";
 import ReactECharts from "echarts-for-react";
 import { Package, MapPin } from "lucide-react";
 import { formatRupiah } from "@/lib/format";
+import { useT } from "@/lib/i18n.jsx";
 
 export default function ProductRevenue() {
+  const { t } = useT();
   const [data, setData] = useState({ products: [], total_revenue: 0, total_orders: 0 });
   const [kotaList, setKotaList] = useState([]);
   const [provList, setProvList] = useState([]);
@@ -44,7 +46,7 @@ export default function ProductRevenue() {
       trigger: "axis",
       formatter: (params) => {
         const p = params[0];
-        return `<b>${p.name}</b><br/>Omset: <b>${formatRupiah(p.value)}</b>`;
+        return `<b>${p.name}</b><br/>${t("pr.totalOmset")}: <b>${formatRupiah(p.value)}</b>`;
       },
     },
     series: [{
@@ -58,55 +60,55 @@ export default function ProductRevenue() {
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-5" data-testid="produk-page">
       <div>
-        <div className="text-xs uppercase tracking-wider text-stone-500 mb-1">Analisis Produk</div>
+        <div className="text-xs uppercase tracking-wider text-stone-500 mb-1">{t("pr.section")}</div>
         <h1 className="font-display text-3xl sm:text-4xl font-extrabold tracking-tight text-stone-900">
-          Omset per Varian
+          {t("pr.heading")}
         </h1>
         <p className="text-stone-600 mt-2">
-          Total omset per varian produk berdasarkan CSV export TikTok Shop. Filter kota/provinsi untuk melihat SKU favorit tiap wilayah.
+          {t("pr.sub")}
         </p>
       </div>
 
       <div className="flex flex-wrap gap-2">
         <select value={filterProv} onChange={(e) => setFilterProv(e.target.value)}
                 className="pp-input rounded-lg px-3 py-1.5 text-sm" data-testid="prod-filter-prov">
-          <option value="">Semua Provinsi</option>
+          <option value="">{t("pr.allProv")}</option>
           {provList.map((p) => <option key={p} value={p}>{p}</option>)}
         </select>
         <select value={filterKota} onChange={(e) => setFilterKota(e.target.value)}
                 className="pp-input rounded-lg px-3 py-1.5 text-sm" data-testid="prod-filter-kota">
-          <option value="">Semua Kota</option>
+          <option value="">{t("pr.allKota")}</option>
           {kotaList.map((k) => <option key={k} value={k}>{k}</option>)}
         </select>
         {(filterKota || filterProv) && (
           <button onClick={() => { setFilterKota(""); setFilterProv(""); }} className="text-xs pp-link">
-            Reset filter
+            {t("pr.resetFilter")}
           </button>
         )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <Tile label="Total Omset" value={formatRupiah(data.total_revenue)} accent="#C2410C" />
-        <Tile label="Total Order (Baris CSV)" value={data.total_orders} accent="#D97706" />
-        <Tile label="Jumlah Varian" value={data.products.length} accent="#B45309" />
+        <Tile label={t("pr.totalOmset")} value={formatRupiah(data.total_revenue)} accent="#C2410C" />
+        <Tile label={t("pr.totalOrder")} value={data.total_orders} accent="#D97706" />
+        <Tile label={t("pr.variantCount")} value={data.products.length} accent="#B45309" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2 pp-card p-5">
           <h3 className="font-display font-bold text-base mb-2 flex items-center gap-2">
-            <Package className="w-4 h-4 text-orange-700" /> Ranking Varian per Omset
+            <Package className="w-4 h-4 text-orange-700" /> {t("pr.rankByRev")}
           </h3>
           {data.products.length ? (
             <ReactECharts option={chartOpt} style={{ height: 340 }} />
           ) : (
             <div className="py-10 text-center text-sm text-stone-500">
-              Belum ada data CSV. <a href="/perlu-ss" className="pp-link">Import CSV di sini</a>.
+              {t("pr.emptyChart")} <a href="/perlu-ss" className="pp-link">{t("pr.importHere")}</a>.
             </div>
           )}
         </div>
         <div className="pp-card p-5">
           <h3 className="font-display font-bold text-base mb-2 flex items-center gap-2">
-            <MapPin className="w-4 h-4 text-orange-700" /> Kota Favorit per Varian Teratas
+            <MapPin className="w-4 h-4 text-orange-700" /> {t("pr.topCity")}
           </h3>
           {data.products.slice(0, 5).length ? (
             <div className="space-y-3 max-h-72 overflow-y-auto">
@@ -127,11 +129,11 @@ export default function ProductRevenue() {
         <table className="pp-table">
           <thead>
             <tr>
-              <th>Varian</th>
-              <th className="text-right">Order</th>
-              <th className="text-right">Qty</th>
-              <th className="text-right">Omset</th>
-              <th>Top 3 Kota</th>
+              <th>{t("pr.col.variation")}</th>
+              <th className="text-right">{t("pr.col.order")}</th>
+              <th className="text-right">{t("pr.col.qty")}</th>
+              <th className="text-right">{t("pr.col.revenue")}</th>
+              <th>{t("pr.col.topCity")}</th>
             </tr>
           </thead>
           <tbody>
@@ -149,7 +151,7 @@ export default function ProductRevenue() {
           </tbody>
         </table>
         {data.products.length === 0 && (
-          <div className="text-center py-12 text-sm text-stone-500">Belum ada data — import CSV di Perlu Di-SS.</div>
+          <div className="text-center py-12 text-sm text-stone-500">{t("pr.emptyTable")}</div>
         )}
       </div>
     </div>

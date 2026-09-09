@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 import { UploadCloud, Loader2, CheckCircle2, AlertCircle, Trash2, Save, FileArchive } from "lucide-react";
+import { useT } from "@/lib/i18n.jsx";
 
 function fileToBase64(file) {
   return new Promise((resolve, reject) => {
@@ -16,21 +17,14 @@ function fileToBase64(file) {
   });
 }
 
-const FIELDS = [
-  { key: "order_id", label: "ID Pesanan" },
-  { key: "created_at", label: "Waktu Pembuatan" },
-  { key: "tiktok_username", label: "Username TikTok" },
-  { key: "recipient_name", label: "Nama Penerima" },
-  { key: "phone", label: "Nomor Telepon" },
-  { key: "affiliate_creator", label: "Kreator Afiliasi" },
-  { key: "address_detail", label: "Detail Alamat" },
-  { key: "kelurahan", label: "Kelurahan" },
-  { key: "kecamatan", label: "Kecamatan" },
-  { key: "kota", label: "Kota" },
-  { key: "provinsi", label: "Provinsi" },
+const FIELD_KEYS = [
+  "order_id", "created_at", "tiktok_username", "recipient_name", "phone",
+  "affiliate_creator", "address_detail", "kelurahan", "kecamatan", "kota", "provinsi",
 ];
 
 export default function Upload() {
+  const { t } = useT();
+  const FIELDS = FIELD_KEYS.map((key) => ({ key, label: t(`up.f.${key}`) }));
   const [rows, setRows] = useState([]);
   const [saving, setSaving] = useState(false);
   const [dragActive, setDragActive] = useState(false);
@@ -61,18 +55,18 @@ export default function Upload() {
       full_address_raw: ex.full_address_raw || "",
       confidence: ex.confidence || {},
     } : null,
-    error: ex ? null : "Ekstraksi gagal",
+    error: ex ? null : t("up.errExtract"),
   });
 
   const handleFiles = async (files) => {
     const list = Array.from(files || []);
     const validFiles = list.filter((f) => /image\/(png|jpe?g|webp)/i.test(f.type));
     if (validFiles.length === 0) {
-      toast.error("Hanya PNG, JPG, atau WEBP yang didukung.");
+      toast.error(t("up.errFormat"));
       return;
     }
     if (validFiles.length !== list.length) {
-      toast.warning(`${list.length - validFiles.length} file dilewati (format tidak didukung).`);
+      toast.warning(t("up.warnSkipped", { n: list.length - validFiles.length }));
     }
     const newRows = validFiles.map((f) => ({
       id: crypto.randomUUID(),
@@ -88,7 +82,7 @@ export default function Upload() {
         const filled = applyExtracted(resp.data.extracted, row.file.name).extracted;
         setRows((prev) => prev.map((r) => (r.id === row.id ? { ...r, status: "ready", extracted: filled } : r)));
       } catch (e) {
-        const msg = e?.response?.data?.detail || e.message || "Ekstraksi gagal";
+        const msg = e?.response?.data?.detail || e.message || t("up.errExtract");
         setRows((prev) => prev.map((r) => (r.id === row.id ? { ...r, status: "error", error: msg } : r)));
       }
     }
@@ -96,7 +90,7 @@ export default function Upload() {
 
   const handleZip = async (file) => {
     if (!file.name.toLowerCase().endsWith(".zip")) {
-      toast.error("File harus berformat .zip");
+      toast.error(t("up.errNotZip"));
       return;
     }
     const fd = new FormData();
@@ -104,10 +98,10 @@ export default function Upload() {
     try {
       const r = await api.post("/vision/extract-zip", fd, { headers: { "Content-Type": "multipart/form-data" } });
       setZipJob({ id: r.data.job_id, status: "queued", total: 0, processed: 0 });
-      toast.success("ZIP diunggah — memproses di latar belakang...");
+      toast.success(t("up.zipQueued"));
       pollJob(r.data.job_id);
     } catch (e) {
-      toast.error(e?.response?.data?.detail || "Gagal upload ZIP");
+      toast.error(e?.response?.data?.detail || t("up.zipUploadFail"));
     }
   };
 
@@ -122,11 +116,11 @@ export default function Upload() {
           clearInterval(pollRef.current);
           const newRows = (j.results || []).map((res) => applyExtracted(res.extracted, res.filename));
           setRows((prev) => [...prev, ...newRows]);
-          toast.success(`ZIP selesai — ${newRows.filter((x) => x.status === "ready").length}/${newRows.length} berhasil diekstrak`);
+          toast.success(t("up.zipDone", { ok: newRows.filter((x) => x.status === "ready").length, n: newRows.length }));
           setTimeout(() => setZipJob(null), 4000);
         } else if (j.status === "failed") {
           clearInterval(pollRef.current);
-          toast.error(`ZIP gagal: ${j.error || "unknown"}`);
+          toast.error(t("up.zipFailed", { err: j.error || "unknown" }));
           setZipJob(null);
         }
       } catch (e) { /* ignore */ }
@@ -142,7 +136,7 @@ export default function Upload() {
 
   const saveAll = async () => {
     const ready = rows.filter((r) => r.status === "ready" && r.extracted?.recipient_name && r.extracted?.phone);
-    if (ready.length === 0) return toast.error("Tidak ada baris siap simpan. Pastikan nama & telepon terisi.");
+    if (ready.length === 0) return toast.error(t("up.errNoReady"));
     setSaving(true);
     try {
       const payload = ready.map((r) => ({
@@ -161,10 +155,10 @@ export default function Upload() {
         full_address_raw: r.extracted.full_address_raw || null,
       }));
       const resp = await api.post("/orders/save", payload);
-      toast.success(`${resp.data.saved} pesanan berhasil disimpan ke database.`);
+      toast.success(t("up.saveOk", { n: resp.data.saved }));
       setRows((prev) => prev.filter((r) => !ready.find((rr) => rr.id === r.id)));
     } catch (e) {
-      toast.error(e?.response?.data?.detail || "Gagal menyimpan");
+      toast.error(e?.response?.data?.detail || t("up.saveFail"));
     } finally { setSaving(false); }
   };
 
@@ -174,12 +168,12 @@ export default function Upload() {
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6" data-testid="upload-page">
       <div>
-        <div className="text-xs uppercase tracking-wider text-stone-500 mb-1">Alur Kerja</div>
+        <div className="text-xs uppercase tracking-wider text-stone-500 mb-1">{t("up.section")}</div>
         <h1 className="font-display text-3xl sm:text-4xl font-extrabold tracking-tight text-stone-900">
-          Upload & Ekstraksi
+          {t("up.heading")}
         </h1>
         <p className="text-stone-600 mt-2 max-w-2xl">
-          Seret satu atau beberapa screenshot, atau upload file .zip berisi ratusan screenshot sekaligus.
+          {t("up.subheading")}
         </p>
       </div>
 
@@ -201,9 +195,9 @@ export default function Upload() {
             <UploadCloud className="w-5 h-5 text-orange-700" />
           </div>
           <div className="font-display font-bold text-base text-stone-900">
-            Tarik & lepas screenshot pesanan TikTok Shop
+            {t("up.dropTitle")}
           </div>
-          <div className="text-sm text-stone-600 mt-1">atau klik untuk memilih file (bisa banyak sekaligus)</div>
+          <div className="text-sm text-stone-600 mt-1">{t("up.dropSubtitle")}</div>
           <div className="text-xs text-stone-500 mt-2">PNG · JPG · WEBP</div>
           <input ref={inputRef} type="file" multiple accept="image/png,image/jpeg,image/webp" className="hidden"
                  onChange={(e) => handleFiles(e.target.files)} data-testid="upload-dropzone-input" />
@@ -214,12 +208,12 @@ export default function Upload() {
             <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-2" style={{ background: "#7C2D1218" }}>
               <FileArchive className="w-5 h-5" style={{ color: "#7C2D12" }} />
             </div>
-            <div className="font-display font-bold text-stone-900">Bulk ZIP</div>
-            <div className="text-xs text-stone-600 mt-1">Upload satu file .zip berisi ratusan screenshot. Kami proses di latar belakang.</div>
+            <div className="font-display font-bold text-stone-900">{t("up.bulkZip")}</div>
+            <div className="text-xs text-stone-600 mt-1">{t("up.bulkZipDesc")}</div>
           </div>
           <label className="pp-btn-secondary mt-3 rounded-md py-2 text-sm text-center cursor-pointer inline-flex items-center justify-center gap-2"
                  data-testid="zip-upload-btn">
-            <FileArchive className="w-4 h-4" /> Pilih File ZIP
+            <FileArchive className="w-4 h-4" /> {t("up.pickZip")}
             <input ref={zipRef} type="file" accept=".zip" className="hidden"
                    onChange={(e) => e.target.files?.[0] && handleZip(e.target.files[0])} />
           </label>
@@ -231,7 +225,7 @@ export default function Upload() {
           <div className="flex items-center justify-between mb-2 text-sm">
             <div className="flex items-center gap-2">
               <Loader2 className="w-4 h-4 animate-spin text-orange-700" />
-              <span className="font-medium">Memproses ZIP</span>
+              <span className="font-medium">{t("up.processingZip")}</span>
               <span className="text-stone-500 text-xs">({zipJob.status})</span>
             </div>
             <div className="text-xs font-mono">{zipJob.processed}/{zipJob.total || "?"}</div>
@@ -245,12 +239,12 @@ export default function Upload() {
       {rows.length > 0 && (
         <div className="flex items-center justify-between">
           <div className="text-sm text-stone-600">
-            <span className="font-semibold text-stone-900">{rows.length}</span> file · {readyCount} siap disimpan
+            <span className="font-semibold text-stone-900">{rows.length}</span> {t("up.fileCount")} · {readyCount} {t("up.readyCount")}
           </div>
           <button onClick={saveAll} disabled={saving || readyCount === 0} data-testid="btn-simpan-semua"
                   className="pp-btn-primary rounded-lg px-4 py-2 text-sm font-semibold inline-flex items-center gap-2">
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            Simpan Semua ke Database
+            {t("up.saveAll")}
           </button>
         </div>
       )}
@@ -266,16 +260,16 @@ export default function Upload() {
                   <div className="w-full rounded-lg border border-stone-200 p-4 text-center text-xs text-stone-500 min-h-[100px] flex items-center justify-center" style={{ background: "#F3EFE6" }}>
                     <div>
                       <FileArchive className="w-6 h-6 mx-auto mb-1 text-stone-400" />
-                      <div>Dari ZIP</div>
+                      <div>{t("up.fromZip")}</div>
                       <div className="text-[10px] mt-0.5 font-mono truncate">{r.filename}</div>
                     </div>
                   </div>
                 )}
                 <div className="mt-2 flex items-center gap-2 text-xs">
-                  {r.status === "processing" && <span className="inline-flex items-center gap-1 text-orange-700"><Loader2 className="w-3 h-3 animate-spin" /> Membaca...</span>}
-                  {r.status === "ready" && <span className="inline-flex items-center gap-1 text-green-700"><CheckCircle2 className="w-3 h-3" /> Siap</span>}
-                  {r.status === "error" && <span className="inline-flex items-center gap-1 text-red-700"><AlertCircle className="w-3 h-3" /> Gagal</span>}
-                  <button onClick={() => removeRow(r.id)} className="ml-auto text-stone-500 hover:text-red-700" title="Hapus"><Trash2 className="w-4 h-4" /></button>
+                  {r.status === "processing" && <span className="inline-flex items-center gap-1 text-orange-700"><Loader2 className="w-3 h-3 animate-spin" /> {t("up.reading")}</span>}
+                  {r.status === "ready" && <span className="inline-flex items-center gap-1 text-green-700"><CheckCircle2 className="w-3 h-3" /> {t("up.readyStatus")}</span>}
+                  {r.status === "error" && <span className="inline-flex items-center gap-1 text-red-700"><AlertCircle className="w-3 h-3" /> {t("up.failed")}</span>}
+                  <button onClick={() => removeRow(r.id)} className="ml-auto text-stone-500 hover:text-red-700" title={t("common.delete")}><Trash2 className="w-4 h-4" /></button>
                 </div>
                 {r.error && <div className="text-xs text-red-700 mt-1">{r.error}</div>}
               </div>
@@ -288,7 +282,7 @@ export default function Upload() {
                       <div key={f.key}>
                         <label className="text-[10px] uppercase tracking-wider text-stone-500 font-semibold flex items-center gap-2 mb-1">
                           {f.label}
-                          {lowConf && <span className="pp-badge" style={{ background: "#FEF3C7", color: "#854D0E", borderColor: "#FCD34D" }}>Cek ulang</span>}
+                          {lowConf && <span className="pp-badge" style={{ background: "#FEF3C7", color: "#854D0E", borderColor: "#FCD34D" }}>{t("up.recheck")}</span>}
                         </label>
                         <input value={r.extracted[f.key] || ""} onChange={(e) => updateRow(r.id, f.key, e.target.value)}
                                className="pp-input w-full rounded-md px-2.5 py-1.5 text-sm"
@@ -299,7 +293,7 @@ export default function Upload() {
                 </div>
               ) : (
                 <div className="flex items-center justify-center text-sm text-stone-500 min-h-[120px]">
-                  {r.status === "processing" ? "Ekstraksi AI sedang berjalan..." : "Menunggu ekstraksi..."}
+                  {r.status === "processing" ? t("up.extractionRunning") : t("up.waitingExtraction")}
                 </div>
               )}
             </div>
@@ -309,7 +303,7 @@ export default function Upload() {
 
       {rows.length === 0 && !zipJob && (
         <div className="text-center py-8 text-sm text-stone-500">
-          Belum ada file. Mulai dengan menarik screenshot atau upload ZIP.
+          {t("up.emptyState")}
         </div>
       )}
     </div>
