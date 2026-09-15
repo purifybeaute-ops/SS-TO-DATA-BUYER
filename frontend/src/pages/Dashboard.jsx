@@ -3,6 +3,7 @@ import { api } from "@/lib/api";
 import { useT } from "@/lib/i18n";
 import { Link } from "react-router-dom";
 import { Users, ShoppingBag, Repeat, MapPin, Upload as UploadIcon, ArrowRight } from "lucide-react";
+import OnboardingProgress from "@/components/OnboardingProgress";
 
 export default function Dashboard() {
   const { t } = useT();
@@ -36,6 +37,8 @@ export default function Dashboard() {
           <UploadIcon className="w-4 h-4" /> {t("dash.uploadCta")}
         </Link>
       </div>
+
+      <OnboardingProgress onboarding={stats?.onboarding} />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {tiles.map((tile) => (

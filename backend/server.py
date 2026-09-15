@@ -720,6 +720,18 @@ async def analytics_dashboard(user=Depends(get_current_user)):
         if c.get("provinsi"):
             prov_counts[c["provinsi"]] += 1
     top_prov = prov_counts.most_common(1)[0] if prov_counts else None
+
+    # Onboarding progress signals — each is a binary "have they done this yet?"
+    csv_orders = await db.orders.count_documents({"source": "csv"})
+    ss_orders = await db.orders.count_documents({"source": "screenshot"})
+    tagged_customers = await db.customers.count_documents({"tag_ids.0": {"$exists": True}})
+    pdf_header_doc = await db.settings.find_one({"key": "pdf_header"})
+    has_pdf_header = bool(
+        pdf_header_doc
+        and isinstance(pdf_header_doc.get("value"), dict)
+        and (pdf_header_doc["value"].get("shop_name") or pdf_header_doc["value"].get("logo_data_url"))
+    )
+
     return {
         "total_customers": total_customers,
         "total_orders": total_orders,
@@ -728,6 +740,16 @@ async def analytics_dashboard(user=Depends(get_current_user)):
         "total_kota": len([k for k in kotas if k]),
         "total_provinsi": len([p for p in provs if p]),
         "top_provinsi": {"name": top_prov[0], "count": top_prov[1]} if top_prov else None,
+        "onboarding": {
+            "csv_imported": csv_orders > 0,
+            "csv_count": csv_orders,
+            "ss_first": ss_orders > 0,
+            "ss_five": ss_orders >= 5,
+            "ss_count": ss_orders,
+            "tagged_first": tagged_customers > 0,
+            "tagged_count": tagged_customers,
+            "pdf_header_set": has_pdf_header,
+        },
     }
 
 
