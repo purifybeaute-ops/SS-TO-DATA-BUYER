@@ -147,7 +147,7 @@ function TagsPanel({ isOwner }) {
   const [tags, setTags] = useState([]);
   const [form, setForm] = useState({ name: "", color: "#C2410C" });
 
-  const load = () => api.get("/tags").then((r) => setTags(r.data));
+  const load = () => { api.get("/tags").then((r) => setTags(r.data)); };
   useEffect(load, []);
 
   const add = async () => {
@@ -186,18 +186,18 @@ function TagsPanel({ isOwner }) {
       )}
       <div className="space-y-2 max-h-96 overflow-y-auto">
         {tags.map((tg, i) => (
-          <div key={tg.id} className="flex items-center gap-2 p-2 rounded-md" style={{ background: "var(--surface-muted)" }}>
+          <div key={tg.id} className="flex items-center gap-2 p-2 rounded-md" style={{ background: "var(--surface-muted)" }} data-testid={`tag-row-${tg.id}`}>
             <input type="color" value={tg.color} disabled={!isOwner}
                    onChange={(e) => setTags((prev) => prev.map((x, j) => j === i ? { ...x, color: e.target.value } : x))}
                    className="w-8 h-8 rounded" />
             <input value={tg.name} disabled={!isOwner}
                    onChange={(e) => setTags((prev) => prev.map((x, j) => j === i ? { ...x, name: e.target.value } : x))}
-                   className="pp-input rounded-md px-2 py-1 text-sm flex-1" />
+                   className="pp-input rounded-md px-2 py-1 text-sm flex-1" data-testid={`tag-name-${tg.id}`} />
             <span className="pp-badge" style={{ background: `${tg.color}20`, color: tg.color, borderColor: `${tg.color}55` }}>{tg.name}</span>
             {isOwner && (
               <>
-                <button onClick={() => update(tg)} className="text-xs pp-link">{t("st.tags.saveEach")}</button>
-                <button onClick={() => del(tg.id)} className="text-red-700 hover:underline text-xs"><Trash2 className="w-3 h-3" /></button>
+                <button onClick={() => update(tg)} className="text-xs pp-link" data-testid={`tag-save-${tg.id}`}>{t("st.tags.saveEach")}</button>
+                <button onClick={() => del(tg.id)} className="text-red-700 hover:underline text-xs" data-testid={`tag-del-${tg.id}`} aria-label="delete tag"><Trash2 className="w-3 h-3" /></button>
               </>
             )}
           </div>
