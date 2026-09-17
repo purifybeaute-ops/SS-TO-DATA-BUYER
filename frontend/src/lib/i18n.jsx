@@ -42,8 +42,10 @@ const DICT = {
     "common.of": "dari",
 
     // Login
-    "login.hero": "Ubah screenshot pesanan jadi database pelanggan Anda sendiri.",
-    "login.subhero": "TikTok Shop tidak memberi Anda akses data pembeli. PelangganKu membaca screenshot, merapikan alamat, mendeteksi pembeli berulang, dan memetakan kota mereka — semua di satu tempat.",
+    "login.hero": "Faktanya: Anda buta di marketplace sendiri.",
+    "login.subhero": "Ribuan orang beli produk Anda tiap bulan — tapi Anda tidak tahu siapa mereka. Nama, wajah, usia, kota, profil pembeli setia vs sekali beli — semua disembunyikan platform. Anda kerja keras closing, tapi database pelanggannya milik marketplace, bukan milik Anda.",
+    "login.solutionLead": "PelangganKu mengembalikan hak itu.",
+    "login.solutionBody": "Screenshot pesanan → nama, HP, alamat, dan pola pembelian tersimpan rapi di database Anda sendiri. Selamanya.",
     "login.title": "Masuk Akun Seller",
     "login.subtitle": "Gunakan akun demo untuk mencoba semua fitur.",
     "login.email": "Email",
@@ -545,8 +547,10 @@ const DICT = {
     "common.customersUnit": "customers",
     "common.of": "of",
 
-    "login.hero": "Turn order screenshots into your own customer database.",
-    "login.subhero": "TikTok Shop doesn't give you access to your buyer data. PelangganKu reads screenshots, cleans up addresses, detects repeat buyers, and maps their cities — all in one place.",
+    "login.hero": "The truth: you're blind in your own marketplace.",
+    "login.subhero": "Thousands of people buy your products every month — but you don't know who they are. Name, face, age, city, profile of a loyal buyer vs a one-time shopper — all hidden by the platform. You work hard to close every sale, yet the customer database belongs to the marketplace, not to you.",
+    "login.solutionLead": "PelangganKu gives that right back.",
+    "login.solutionBody": "Screenshot an order → name, phone, address, and buying pattern land neatly in your own database. Forever.",
     "login.title": "Sign in to Seller Account",
     "login.subtitle": "Use a demo account to try all features.",
     "login.email": "Email",

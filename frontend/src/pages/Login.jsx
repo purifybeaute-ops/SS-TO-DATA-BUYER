@@ -52,6 +52,10 @@ export default function Login() {
             {t("login.hero")}
           </h1>
           <p className="text-stone-700 text-base leading-relaxed">{t("login.subhero")}</p>
+          <p className="text-stone-800 text-base leading-relaxed mt-3">
+            <strong className="text-orange-900">{t("login.solutionLead")}</strong>{" "}
+            {t("login.solutionBody")}
+          </p>
           <div className="mt-8 flex items-center gap-3 text-sm text-stone-700">
             <div className="flex -space-x-2">
               <div className="w-8 h-8 rounded-full border-2 border-white" style={{ background: "#C2410C" }} />
