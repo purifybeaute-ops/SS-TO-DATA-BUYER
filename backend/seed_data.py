@@ -1,8 +1,9 @@
 """Seed default users, normalization rules, tags, WA template, and demo customers."""
+import random
 import uuid
-from datetime import datetime, timezone, timedelta
-from auth import hash_password
+from datetime import datetime, timedelta, timezone
 
+from auth import hash_password
 
 DEFAULT_NORMALIZATION_RULES = [
     ("West Java", "Jawa Barat", "provinsi"),
@@ -149,6 +150,62 @@ DEMO_NOTES = {
 }
 
 
+def _fmt_count(n: int) -> str:
+    """Format integer as TikTok-style short string: 12400 -> '12.4K', 1200000 -> '1.2M'."""
+    if n >= 1_000_000:
+        return f"{n / 1_000_000:.1f}M"
+    if n >= 1_000:
+        return f"{n / 1_000:.1f}K"
+    return str(n)
+
+
+def _gen_profile():
+    """Return a plausible (followers_num, likes_num) pair mimicking real TikTok distributions.
+
+    60% micro <10K, 25% mid 10K-100K, 10% macro >100K, 5% no profile data.
+    """
+    roll = random.random()
+    if roll < 0.05:
+        return None
+    if roll < 0.65:
+        fn = random.randint(50, 9_800)
+        ln = fn * random.randint(3, 12)
+    elif roll < 0.90:
+        fn = random.randint(10_000, 98_000)
+        ln = fn * random.randint(4, 15)
+    else:
+        fn = random.randint(120_000, 3_500_000)
+        ln = fn * random.randint(5, 20)
+    return fn, ln
+
+
+async def _backfill_tiktok_profiles(db):
+    """Fill in tiktok_followers/likes for any demo customer still missing them.
+
+    Idempotent — only touches docs where the numeric field is missing/null.
+    """
+    cursor = db.customers.find(
+        {"tiktok_username": {"$ne": None},
+         "$or": [{"tiktok_followers_num": None},
+                 {"tiktok_followers_num": {"$exists": False}}]},
+        {"id": 1, "_id": 0},
+    )
+    async for c in cursor:
+        prof = _gen_profile()
+        if not prof:
+            continue
+        fn, ln = prof
+        await db.customers.update_one(
+            {"id": c["id"]},
+            {"$set": {
+                "tiktok_followers": _fmt_count(fn),
+                "tiktok_likes": _fmt_count(ln),
+                "tiktok_followers_num": fn,
+                "tiktok_likes_num": ln,
+            }},
+        )
+
+
 async def seed_all(db):
     now = datetime.now(timezone.utc).isoformat()
 
@@ -268,3 +325,7 @@ async def seed_all(db):
                     "quantity": 1,
                     "created_at": now,
                 })
+
+    # 7. Backfill any customer missing TikTok profile stats (idempotent).
+    #    Ensures demo data survives across schema evolutions & restarts.
+    await _backfill_tiktok_profiles(db)
