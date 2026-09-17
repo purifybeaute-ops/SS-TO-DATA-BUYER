@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
-import { Search, MessageCircle, StickyNote, X, Save, Tag as TagIcon, CheckSquare, Square, Trash2, Users as UsersIcon, Heart, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+import { Search, MessageCircle, StickyNote, X, Save, Tag as TagIcon, CheckSquare, Square, Trash2, Users as UsersIcon, Heart, ArrowUp, ArrowDown, ArrowUpDown, Briefcase, ExternalLink } from "lucide-react";
 import { formatDateShortID, waLink } from "@/lib/format";
 import { useT } from "@/lib/i18n.jsx";
 
@@ -147,6 +147,7 @@ export default function Customers() {
               <th>{t("cust.col.kecamatan")}</th>
               <th>{t("cust.col.kota")}</th>
               <th>{t("cust.col.provinsi")}</th>
+              <th>{t("cust.col.profession")}</th>
               <th>{t("cust.col.creator")}</th>
               <th>
                 <button onClick={() => toggleSort("orders")} className="inline-flex items-center hover:text-orange-700 uppercase tracking-wider text-xs font-semibold" data-testid="sort-orders">
@@ -226,6 +227,9 @@ export default function Customers() {
                 <td className="text-stone-700">{c.kecamatan || "-"}</td>
                 <td className="text-stone-700">{c.kota || "-"}</td>
                 <td className="text-stone-700">{c.provinsi || "-"}</td>
+                <td className="text-stone-700 text-xs" data-testid={`profession-${c.id}`}>
+                  {c.profession || <span className="text-stone-300">—</span>}
+                </td>
                 <td className="text-stone-700 text-xs">{c.affiliate_creator || <span className="text-stone-400">{t("cust.organic")}</span>}</td>
                 <td className="font-mono text-center">{c.order_count}</td>
                 <td>
@@ -383,20 +387,26 @@ function CustomerDrawer({ id, onClose, onUpdated, tags, waTemplate }) {
   const [data, setData] = useState(null);
   const [notes, setNotes] = useState("");
   const [tagIds, setTagIds] = useState([]);
+  const [profession, setProfession] = useState("");
 
   useEffect(() => {
     api.get(`/customers/${id}`).then((r) => {
       setData(r.data);
       setNotes(r.data.customer.notes || "");
       setTagIds(r.data.customer.tag_ids || []);
+      setProfession(r.data.customer.profession || "");
     });
   }, [id]);
 
   const save = async () => {
-    await api.patch(`/customers/${id}`, { notes, tag_ids: tagIds });
+    await api.patch(`/customers/${id}`, { notes, tag_ids: tagIds, profession });
     toast.success(t("cust.drawer.saved"));
     onUpdated();
   };
+
+  const googleSearchUrl = data?.customer.recipient_name
+    ? `https://www.google.com/search?q=${encodeURIComponent(`"${data.customer.recipient_name}" linkedin`)}`
+    : "https://www.google.com";
 
   const toggleTag = (tid) => {
     setTagIds((prev) => (prev.includes(tid) ? prev.filter((x) => x !== tid) : [...prev, tid]));
@@ -449,6 +459,30 @@ function CustomerDrawer({ id, onClose, onUpdated, tags, waTemplate }) {
             </div>
 
             <TikTokProfileCard customer={data.customer} t={t} />
+
+            <div className="pp-card p-4" data-testid="profession-card">
+              <label className="text-xs uppercase tracking-wider font-semibold text-stone-500 mb-2 flex items-center gap-2">
+                <Briefcase className="w-3 h-3" /> {t("cust.drawer.professionLabel")}
+              </label>
+              <input
+                value={profession}
+                onChange={(e) => setProfession(e.target.value)}
+                placeholder={t("cust.drawer.professionPlaceholder")}
+                className="pp-input rounded-md px-3 py-2 text-sm w-full"
+                data-testid="input-profession"
+              />
+              <div className="flex items-center gap-2 mt-2">
+                <a
+                  href={googleSearchUrl}
+                  target="_blank" rel="noreferrer"
+                  className="pp-btn-secondary rounded-md px-3 py-1.5 text-xs font-medium inline-flex items-center gap-1.5"
+                  data-testid="btn-search-google"
+                >
+                  <ExternalLink className="w-3 h-3" /> {t("cust.drawer.searchGoogle")}
+                </a>
+                <span className="text-[10px] text-stone-500 flex-1">{t("cust.drawer.searchGoogleHint")}</span>
+              </div>
+            </div>
 
             <div className="pp-card p-4">
               <label className="text-xs uppercase tracking-wider font-semibold text-stone-500 mb-2 flex items-center gap-2">

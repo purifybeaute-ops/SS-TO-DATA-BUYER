@@ -357,6 +357,11 @@ class CustomerPatch(BaseModel):
     notes: Optional[str] = None
     tag_ids: Optional[List[str]] = None
     recipient_name: Optional[str] = None
+    profession: Optional[str] = None
+    tiktok_followers: Optional[str] = None
+    tiktok_likes: Optional[str] = None
+    tiktok_followers_num: Optional[int] = None
+    tiktok_likes_num: Optional[int] = None
 
 
 @api.patch("/customers/{cid}")
@@ -829,6 +834,7 @@ class SegmentFilter(BaseModel):
     tag_id: Optional[str] = None
     creator: Optional[str] = None
     follower_tier: Optional[str] = None  # micro | mid | macro | unknown
+    profession: Optional[str] = None  # keyword substring match
     date_from: Optional[str] = None
     date_to: Optional[str] = None
 
@@ -862,6 +868,9 @@ async def _query_segment(f: SegmentFilter):
         query["$and"] = query.get("$and", []) + [
             {"$or": [{"tiktok_followers_num": None}, {"tiktok_followers_num": {"$exists": False}}]}
         ]
+    if f.profession:
+        pat = re.escape(f.profession)
+        query["profession"] = {"$regex": pat, "$options": "i"}
     if f.date_from or f.date_to:
         rng = {}
         if f.date_from:
