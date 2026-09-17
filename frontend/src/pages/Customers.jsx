@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
-import { Search, MessageCircle, StickyNote, X, Save, Tag as TagIcon, CheckSquare, Square, Trash2, Users as UsersIcon, Heart } from "lucide-react";
+import { Search, MessageCircle, StickyNote, X, Save, Tag as TagIcon, CheckSquare, Square, Trash2, Users as UsersIcon, Heart, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import { formatDateShortID, waLink } from "@/lib/format";
 import { useT } from "@/lib/i18n.jsx";
 
@@ -16,6 +16,8 @@ export default function Customers() {
   const [drawer, setDrawer] = useState(null);
   const [selected, setSelected] = useState(new Set());
   const [bulkPanel, setBulkPanel] = useState(false);
+  const [sortBy, setSortBy] = useState(null);  // "followers" | "orders" | "lastSeen"
+  const [sortDir, setSortDir] = useState("desc");
 
   const load = () => api.get("/customers").then((r) => setRows(r.data));
 
@@ -25,8 +27,19 @@ export default function Customers() {
     api.get("/settings/wa_template").then((r) => setWaTemplate(r.data?.value || ""));
   }, []);
 
+  const toggleSort = (key) => {
+    if (sortBy === key) setSortDir(sortDir === "desc" ? "asc" : "desc");
+    else { setSortBy(key); setSortDir("desc"); }
+  };
+  const SortIcon = ({ col }) => {
+    if (sortBy !== col) return <ArrowUpDown className="w-3 h-3 inline text-stone-300 ml-0.5" />;
+    return sortDir === "desc"
+      ? <ArrowDown className="w-3 h-3 inline text-orange-700 ml-0.5" />
+      : <ArrowUp className="w-3 h-3 inline text-orange-700 ml-0.5" />;
+  };
+
   const filtered = useMemo(() => {
-    return rows.filter((r) => {
+    let out = rows.filter((r) => {
       if (q) {
         const p = q.toLowerCase();
         const hay = `${r.recipient_name} ${r.tiktok_username} ${r.phone} ${r.kota} ${r.provinsi} ${r.kecamatan}`.toLowerCase();
@@ -37,7 +50,22 @@ export default function Customers() {
       if (filterTag && !(r.tag_ids || []).includes(filterTag)) return false;
       return true;
     });
-  }, [rows, q, filterRepeat, filterTag]);
+    if (sortBy) {
+      const dir = sortDir === "desc" ? -1 : 1;
+      const keyFn = {
+        followers: (r) => r.tiktok_followers_num ?? -1,
+        orders: (r) => r.order_count || 0,
+        lastSeen: (r) => r.last_seen || "",
+      }[sortBy];
+      out = [...out].sort((a, b) => {
+        const va = keyFn(a); const vb = keyFn(b);
+        if (va < vb) return -1 * dir;
+        if (va > vb) return 1 * dir;
+        return 0;
+      });
+    }
+    return out;
+  }, [rows, q, filterRepeat, filterTag, sortBy, sortDir]);
 
   const tagById = useMemo(() => Object.fromEntries(tags.map((t) => [t.id, t])), [tags]);
 
@@ -110,14 +138,27 @@ export default function Customers() {
               </th>
               <th>{t("cust.col.name")}</th>
               <th>{t("cust.col.username")}</th>
+              <th>
+                <button onClick={() => toggleSort("followers")} className="inline-flex items-center hover:text-orange-700 uppercase tracking-wider text-xs font-semibold" data-testid="sort-followers">
+                  {t("cust.col.followers")}<SortIcon col="followers" />
+                </button>
+              </th>
               <th>{t("cust.col.phone")}</th>
               <th>{t("cust.col.kecamatan")}</th>
               <th>{t("cust.col.kota")}</th>
               <th>{t("cust.col.provinsi")}</th>
               <th>{t("cust.col.creator")}</th>
-              <th>{t("cust.col.order")}</th>
+              <th>
+                <button onClick={() => toggleSort("orders")} className="inline-flex items-center hover:text-orange-700 uppercase tracking-wider text-xs font-semibold" data-testid="sort-orders">
+                  {t("cust.col.order")}<SortIcon col="orders" />
+                </button>
+              </th>
               <th>{t("cust.col.tag")}</th>
-              <th>{t("cust.col.lastSeen")}</th>
+              <th>
+                <button onClick={() => toggleSort("lastSeen")} className="inline-flex items-center hover:text-orange-700 uppercase tracking-wider text-xs font-semibold" data-testid="sort-lastseen">
+                  {t("cust.col.lastSeen")}<SortIcon col="lastSeen" />
+                </button>
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -146,21 +187,34 @@ export default function Customers() {
                 <td className="font-mono text-xs text-stone-600">
                   <div className="flex flex-col gap-0.5">
                     <span>{c.tiktok_username || "-"}</span>
-                    {(c.tiktok_followers || c.tiktok_likes) && (
-                      <span className="inline-flex items-center gap-1.5 text-[10px] text-stone-500" data-testid={`tt-profile-${c.id}`}>
-                        {c.tiktok_followers && (
-                          <span className="inline-flex items-center gap-0.5" title="Followers">
-                            <UsersIcon className="w-2.5 h-2.5" /> {c.tiktok_followers}
-                          </span>
-                        )}
-                        {c.tiktok_likes && (
-                          <span className="inline-flex items-center gap-0.5" title="Likes">
-                            <Heart className="w-2.5 h-2.5" /> {c.tiktok_likes}
-                          </span>
-                        )}
+                    {c.tiktok_likes && (
+                      <span className="inline-flex items-center gap-0.5 text-[10px] text-stone-500" title="Likes">
+                        <Heart className="w-2.5 h-2.5" /> {c.tiktok_likes}
                       </span>
                     )}
                   </div>
+                </td>
+                <td className="text-xs" data-testid={`tt-followers-${c.id}`}>
+                  {c.tiktok_followers ? (
+                    (() => {
+                      const n = c.tiktok_followers_num || 0;
+                      const tier = n === 0 ? null : n < 10000 ? "micro" : n <= 100000 ? "mid" : "macro";
+                      const tierColor = { micro: "#0369A1", mid: "#B45309", macro: "#991B1B" }[tier] || "#57534E";
+                      return (
+                        <div className="flex items-center gap-1.5">
+                          <UsersIcon className="w-3 h-3 text-stone-500" />
+                          <span className="font-semibold text-stone-800">{c.tiktok_followers}</span>
+                          {tier && (
+                            <span className="pp-badge" style={{ background: `${tierColor}18`, color: tierColor, borderColor: `${tierColor}55`, fontSize: 9 }}>
+                              {tier}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })()
+                  ) : (
+                    <span className="text-stone-300">—</span>
+                  )}
                 </td>
                 <td>
                   <a href={waLink(c.phone, waTemplate, c.recipient_name)} target="_blank" rel="noreferrer"

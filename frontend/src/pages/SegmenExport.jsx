@@ -12,6 +12,7 @@ export default function SegmenExport() {
   const [tplLocal, setTplLocal] = useState("");
   const [filters, setFilters] = useState({
     kota: "", provinsi: "", repeat: "", tag_id: "", creator: "",
+    follower_tier: "",
     date_from: "", date_to: "",
   });
   const [preview, setPreview] = useState({ count: 0, customers: [] });
@@ -39,6 +40,7 @@ export default function SegmenExport() {
       repeat: filters.repeat === "yes" ? true : filters.repeat === "no" ? false : null,
       tag_id: filters.tag_id || null,
       creator: filters.creator || null,
+      follower_tier: filters.follower_tier || null,
       date_from: filters.date_from || null,
       date_to: filters.date_to || null,
     };
@@ -77,6 +79,7 @@ export default function SegmenExport() {
     kota: filters.kota || null, provinsi: filters.provinsi || null,
     repeat: filters.repeat === "yes" ? true : filters.repeat === "no" ? false : null,
     tag_id: filters.tag_id || null, creator: filters.creator || null,
+    follower_tier: filters.follower_tier || null,
     date_from: filters.date_from || null, date_to: filters.date_to || null,
   });
 
@@ -188,6 +191,16 @@ export default function SegmenExport() {
           <Field label={t("seg.field.creator")}>
             <input value={filters.creator} onChange={(e) => setFilters({ ...filters, creator: e.target.value })}
                    className="pp-input rounded-md px-2.5 py-1.5 w-full" placeholder={t("seg.creatorPlaceholder")} data-testid="seg-creator" />
+          </Field>
+          <Field label={t("seg.field.followerTier")}>
+            <select value={filters.follower_tier} onChange={(e) => setFilters({ ...filters, follower_tier: e.target.value })}
+                    className="pp-input rounded-md px-2.5 py-1.5 w-full" data-testid="seg-follower-tier">
+              <option value="">{t("seg.tier.all")}</option>
+              <option value="micro">{t("seg.tier.micro")}</option>
+              <option value="mid">{t("seg.tier.mid")}</option>
+              <option value="macro">{t("seg.tier.macro")}</option>
+              <option value="unknown">{t("seg.tier.unknown")}</option>
+            </select>
           </Field>
           <Field label={t("seg.field.dateFrom")}>
             <input type="date" value={filters.date_from} onChange={(e) => setFilters({ ...filters, date_from: e.target.value })}

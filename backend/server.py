@@ -828,6 +828,7 @@ class SegmentFilter(BaseModel):
     repeat: Optional[bool] = None
     tag_id: Optional[str] = None
     creator: Optional[str] = None
+    follower_tier: Optional[str] = None  # micro | mid | macro | unknown
     date_from: Optional[str] = None
     date_to: Optional[str] = None
 
@@ -851,6 +852,16 @@ async def _query_segment(f: SegmentFilter):
         query["tag_ids"] = f.tag_id
     if f.creator:
         query["affiliate_creator"] = f.creator
+    if f.follower_tier == "micro":
+        query["tiktok_followers_num"] = {"$gt": 0, "$lt": 10_000}
+    elif f.follower_tier == "mid":
+        query["tiktok_followers_num"] = {"$gte": 10_000, "$lte": 100_000}
+    elif f.follower_tier == "macro":
+        query["tiktok_followers_num"] = {"$gt": 100_000}
+    elif f.follower_tier == "unknown":
+        query["$and"] = query.get("$and", []) + [
+            {"$or": [{"tiktok_followers_num": None}, {"tiktok_followers_num": {"$exists": False}}]}
+        ]
     if f.date_from or f.date_to:
         rng = {}
         if f.date_from:
