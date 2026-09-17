@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
-import { Search, MessageCircle, StickyNote, X, Save, Tag as TagIcon, CheckSquare, Square, Trash2 } from "lucide-react";
+import { Search, MessageCircle, StickyNote, X, Save, Tag as TagIcon, CheckSquare, Square, Trash2, Users as UsersIcon, Heart } from "lucide-react";
 import { formatDateShortID, waLink } from "@/lib/format";
 import { useT } from "@/lib/i18n.jsx";
 
@@ -143,7 +143,25 @@ export default function Customers() {
                     {c.notes && <StickyNote className="w-3 h-3 text-amber-600" title={t("cust.badge.hasNote")} />}
                   </div>
                 </td>
-                <td className="font-mono text-xs text-stone-600">{c.tiktok_username || "-"}</td>
+                <td className="font-mono text-xs text-stone-600">
+                  <div className="flex flex-col gap-0.5">
+                    <span>{c.tiktok_username || "-"}</span>
+                    {(c.tiktok_followers || c.tiktok_likes) && (
+                      <span className="inline-flex items-center gap-1.5 text-[10px] text-stone-500" data-testid={`tt-profile-${c.id}`}>
+                        {c.tiktok_followers && (
+                          <span className="inline-flex items-center gap-0.5" title="Followers">
+                            <UsersIcon className="w-2.5 h-2.5" /> {c.tiktok_followers}
+                          </span>
+                        )}
+                        {c.tiktok_likes && (
+                          <span className="inline-flex items-center gap-0.5" title="Likes">
+                            <Heart className="w-2.5 h-2.5" /> {c.tiktok_likes}
+                          </span>
+                        )}
+                      </span>
+                    )}
+                  </div>
+                </td>
                 <td>
                   <a href={waLink(c.phone, waTemplate, c.recipient_name)} target="_blank" rel="noreferrer"
                      className="inline-flex items-center gap-1 text-green-700 hover:underline font-mono text-xs"
@@ -376,6 +394,8 @@ function CustomerDrawer({ id, onClose, onUpdated, tags, waTemplate }) {
               </div>
             </div>
 
+            <TikTokProfileCard customer={data.customer} t={t} />
+
             <div className="pp-card p-4">
               <label className="text-xs uppercase tracking-wider font-semibold text-stone-500 mb-2 flex items-center gap-2">
                 <TagIcon className="w-3 h-3" /> {t("cust.drawer.tagsLabel")}
@@ -451,6 +471,60 @@ function Info({ label, value, mono, block }) {
     <div className={block ? "col-span-2" : ""}>
       <div className="text-[10px] uppercase tracking-wider text-stone-500">{label}</div>
       <div className={`text-stone-900 ${mono ? "font-mono text-xs" : "text-sm"}`}>{value || "-"}</div>
+    </div>
+  );
+}
+
+function TikTokProfileCard({ customer, t }) {
+  const followers = customer.tiktok_followers;
+  const likes = customer.tiktok_likes;
+  const hasAny = followers || likes;
+  return (
+    <div className="pp-card p-4" data-testid="tiktok-profile-card">
+      <div className="flex items-center justify-between mb-2">
+        <div className="text-xs uppercase tracking-wider font-semibold text-stone-500">
+          {t("cust.drawer.profileTitle")}
+        </div>
+        {customer.tiktok_username && (
+          <span className="font-mono text-xs text-stone-600">@{customer.tiktok_username}</span>
+        )}
+      </div>
+      {hasAny ? (
+        <div className="grid grid-cols-2 gap-2">
+          <div
+            className="rounded-lg p-3 flex items-center gap-3"
+            style={{ background: "linear-gradient(135deg, #FFF7ED 0%, #FFEDD5 100%)", border: "1px solid #FED7AA" }}
+            data-testid="tt-followers-tile"
+          >
+            <div className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: "#C2410C" }}>
+              <UsersIcon className="w-4 h-4 text-white" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-[10px] uppercase tracking-wider text-stone-500">{t("cust.drawer.followers")}</div>
+              <div className="font-display font-extrabold text-xl text-stone-900 leading-tight">
+                {followers || "—"}
+              </div>
+            </div>
+          </div>
+          <div
+            className="rounded-lg p-3 flex items-center gap-3"
+            style={{ background: "linear-gradient(135deg, #FEF2F2 0%, #FEE2E2 100%)", border: "1px solid #FECACA" }}
+            data-testid="tt-likes-tile"
+          >
+            <div className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: "#DC2626" }}>
+              <Heart className="w-4 h-4 text-white" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-[10px] uppercase tracking-wider text-stone-500">{t("cust.drawer.likes")}</div>
+              <div className="font-display font-extrabold text-xl text-stone-900 leading-tight">
+                {likes || "—"}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="text-xs text-stone-500 italic py-2">{t("cust.drawer.profileEmpty")}</div>
+      )}
     </div>
   );
 }

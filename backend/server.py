@@ -198,6 +198,10 @@ class OrderIn(BaseModel):
     order_id: Optional[str] = None
     created_at_order: Optional[str] = None
     tiktok_username: Optional[str] = None
+    tiktok_followers: Optional[str] = None
+    tiktok_likes: Optional[str] = None
+    tiktok_followers_num: Optional[int] = None
+    tiktok_likes_num: Optional[int] = None
     recipient_name: str
     phone: str
     address_detail: Optional[str] = None
@@ -233,6 +237,10 @@ async def save_orders(orders: List[OrderIn], user=Depends(get_current_user)):
                 # Update most recent contact info (overwrite with latest capture)
                 "recipient_name": o.recipient_name or existing.get("recipient_name"),
                 "tiktok_username": o.tiktok_username or existing.get("tiktok_username"),
+                "tiktok_followers": o.tiktok_followers or existing.get("tiktok_followers"),
+                "tiktok_likes": o.tiktok_likes or existing.get("tiktok_likes"),
+                "tiktok_followers_num": o.tiktok_followers_num if o.tiktok_followers_num is not None else existing.get("tiktok_followers_num"),
+                "tiktok_likes_num": o.tiktok_likes_num if o.tiktok_likes_num is not None else existing.get("tiktok_likes_num"),
                 "kota": kota_norm or existing.get("kota"),
                 "provinsi": prov_norm or existing.get("provinsi"),
                 "kecamatan": o.kecamatan or existing.get("kecamatan"),
@@ -248,6 +256,10 @@ async def save_orders(orders: List[OrderIn], user=Depends(get_current_user)):
                 "id": cust_id,
                 "recipient_name": o.recipient_name,
                 "tiktok_username": o.tiktok_username,
+                "tiktok_followers": o.tiktok_followers,
+                "tiktok_likes": o.tiktok_likes,
+                "tiktok_followers_num": o.tiktok_followers_num,
+                "tiktok_likes_num": o.tiktok_likes_num,
                 "phone": phone_norm,
                 "kota": kota_norm,
                 "provinsi": prov_norm,

@@ -17,6 +17,8 @@ Kembalikan JSON valid dengan struktur:
   "order_id": string | null,
   "created_at": string | null,
   "tiktok_username": string | null,
+  "tiktok_followers": string | null,
+  "tiktok_likes": string | null,
   "recipient_name": string | null,
   "phone": string | null,
   "full_address_raw": string | null,
@@ -25,6 +27,8 @@ Kembalikan JSON valid dengan struktur:
     "order_id": number,
     "created_at": number,
     "tiktok_username": number,
+    "tiktok_followers": number,
+    "tiktok_likes": number,
     "recipient_name": number,
     "phone": number,
     "full_address_raw": number,
@@ -36,6 +40,8 @@ Petunjuk field:
 - order_id: angka panjang setelah "ID Pesanan"
 - created_at: nilai setelah "Waktu Pembuatan", format DD/MM/YYYY HH:MM:SS
 - tiktok_username: handle di bawah heading "Pembeli"
+- tiktok_followers: jumlah pengikut/followers pembeli yang tampak di dekat profil TikTok (mis. "1.2K", "23.4K", "156", "2.1M"). Kembalikan persis seperti tercetak, TANPA menambahkan kata "Followers" atau "Pengikut".
+- tiktok_likes: jumlah suka/likes profil pembeli (mis. "45.2K", "1.1M"). Kembalikan persis seperti tercetak. Jangan bingung dengan followers.
 - recipient_name: nama di bawah heading "Alamat pengiriman"
 - phone: nomor telepon persis seperti tampak, termasuk (+62) jika ada
 - full_address_raw: SELURUH teks alamat pengiriman di bawah nama & telepon (termasuk baris terakhir "kelurahan, kecamatan, kota, provinsi, Indonesia"). Gabungkan menjadi satu string dengan koma/newline sesuai aslinya.
@@ -82,7 +88,38 @@ async def extract_from_image(image_base64: str) -> dict:
     data["phone_normalized"] = normalize_phone(data.get("phone"))
     parsed = parse_address(data.get("full_address_raw"))
     data.update(parsed)
+    # Parse numeric counts for sorting (best-effort)
+    data["tiktok_followers_num"] = parse_social_count(data.get("tiktok_followers"))
+    data["tiktok_likes_num"] = parse_social_count(data.get("tiktok_likes"))
     return data
+
+
+def parse_social_count(raw: Optional[str]) -> Optional[int]:
+    """Convert '1.2K', '23.4K', '2.1M', '156', '1,234' to an integer.
+
+    Returns None if the input can't be parsed.
+    """
+    if raw is None:
+        return None
+    s = str(raw).strip().replace(",", "").replace(" ", "")
+    if not s:
+        return None
+    m = re.match(r"^([\d.]+)\s*([KMBkmb])?$", s)
+    if not m:
+        # try to strip trailing text like "45.2K Suka"
+        m = re.match(r"^([\d.]+)\s*([KMBkmb])", s)
+        if not m:
+            try:
+                return int(float(s))
+            except ValueError:
+                return None
+    num_str, suffix = m.group(1), (m.group(2) or "").upper()
+    try:
+        num = float(num_str)
+    except ValueError:
+        return None
+    mult = {"": 1, "K": 1_000, "M": 1_000_000, "B": 1_000_000_000}.get(suffix, 1)
+    return int(num * mult)
 
 
 def normalize_phone(raw: Optional[str]) -> Optional[str]:

@@ -18,8 +18,9 @@ function fileToBase64(file) {
 }
 
 const FIELD_KEYS = [
-  "order_id", "created_at", "tiktok_username", "recipient_name", "phone",
-  "affiliate_creator", "address_detail", "kelurahan", "kecamatan", "kota", "provinsi",
+  "order_id", "created_at", "tiktok_username", "tiktok_followers", "tiktok_likes",
+  "recipient_name", "phone", "affiliate_creator",
+  "address_detail", "kelurahan", "kecamatan", "kota", "provinsi",
 ];
 
 export default function Upload() {
@@ -43,6 +44,10 @@ export default function Upload() {
       order_id: ex.order_id || "",
       created_at: ex.created_at || "",
       tiktok_username: ex.tiktok_username || "",
+      tiktok_followers: ex.tiktok_followers || "",
+      tiktok_likes: ex.tiktok_likes || "",
+      tiktok_followers_num: ex.tiktok_followers_num ?? null,
+      tiktok_likes_num: ex.tiktok_likes_num ?? null,
       recipient_name: ex.recipient_name || "",
       phone: ex.phone_normalized || ex.phone || "",
       affiliate_creator: ex.affiliate_creator || "",
@@ -143,6 +148,10 @@ export default function Upload() {
         order_id: r.extracted.order_id || null,
         created_at_order: r.extracted.created_at || null,
         tiktok_username: r.extracted.tiktok_username || null,
+        tiktok_followers: r.extracted.tiktok_followers || null,
+        tiktok_likes: r.extracted.tiktok_likes || null,
+        tiktok_followers_num: r.extracted.tiktok_followers_num,
+        tiktok_likes_num: r.extracted.tiktok_likes_num,
         recipient_name: r.extracted.recipient_name,
         phone: r.extracted.phone,
         address_detail: r.extracted.address_detail || null,
