@@ -116,6 +116,13 @@ const DICT = {
     "land.footer.pdp": "PelangganKu hanya mengolah data pesanan milik seller sendiri dan profil publik. Sesuai UU PDP No. 27/2022.",
     "land.footer.copy": "© 2026 PelangganKu",
 
+    "alerts.title": "Pembeli Berpengaruh",
+    "alerts.subtitle": "Pembeli dengan followers ≥ 100K masuk database.",
+    "alerts.empty": "Belum ada pembeli berpengaruh. Upload lebih banyak screenshot.",
+    "alerts.new": "BARU",
+    "alerts.threshold": "Ambang batas: 100K followers",
+    "alerts.markRead": "Tandai semua sudah dibaca",
+
     "login.hero": "Faktanya: Anda buta di marketplace sendiri.",
     "login.subhero": "Ribuan orang beli produk Anda tiap bulan — tapi Anda tidak tahu siapa mereka. Nama, wajah, usia, kota, profil pembeli setia vs sekali beli — semua disembunyikan platform. Anda kerja keras closing, tapi database pelanggannya milik marketplace, bukan milik Anda.",
     "login.solutionLead": "PelangganKu mengembalikan hak itu.",
@@ -715,6 +722,13 @@ const DICT = {
     "land.footer.badges": "No API · No training · Your data",
     "land.footer.pdp": "PelangganKu only processes order data owned by the seller and public profile data. Compliant with Indonesian PDP Law No. 27/2022.",
     "land.footer.copy": "© 2026 PelangganKu",
+
+    "alerts.title": "Influential Buyers",
+    "alerts.subtitle": "Buyers with ≥ 100K followers in your database.",
+    "alerts.empty": "No influential buyers yet. Upload more screenshots.",
+    "alerts.new": "NEW",
+    "alerts.threshold": "Threshold: 100K followers",
+    "alerts.markRead": "Mark all as read",
 
     "login.hero": "The truth: you're blind in your own marketplace.",
     "login.subhero": "Thousands of people buy your products every month — but you don't know who they are. Name, face, age, city, profile of a loyal buyer vs a one-time shopper — all hidden by the platform. You work hard to close every sale, yet the customer database belongs to the marketplace, not to you.",

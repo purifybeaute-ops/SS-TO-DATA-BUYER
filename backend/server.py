@@ -1183,6 +1183,74 @@ async def list_audit(
 
 
 # ---------------------------------------------------------------------------
+# Alerts — Influential Buyer (>=100K followers)
+# ---------------------------------------------------------------------------
+INFLUENTIAL_THRESHOLD = 100_000  # followers
+
+
+def _to_dt(v):
+    if isinstance(v, datetime):
+        return v
+    if isinstance(v, str):
+        try:
+            return datetime.fromisoformat(v.replace("Z", "+00:00"))
+        except Exception:
+            return None
+    return None
+
+
+@api.get("/alerts/influential")
+async def alerts_influential(user=Depends(get_current_user), limit: int = 30):
+    """Return recent customers whose TikTok followers reached the influential
+    threshold, with an `is_new` flag based on the per-user last-seen timestamp."""
+    email = user.get("email") or ""
+    pref = await db.user_prefs.find_one({"email": email}, {"_id": 0})
+    seen_until = _to_dt((pref or {}).get("alerts_seen_until")) or datetime(1970, 1, 1, tzinfo=timezone.utc)
+
+    cursor = db.customers.find(
+        {"tiktok_followers_num": {"$gte": INFLUENTIAL_THRESHOLD}},
+        {"_id": 0, "id": 1, "recipient_name": 1, "phone": 1, "tiktok_username": 1,
+         "tiktok_followers_num": 1, "tiktok_likes_num": 1, "kota": 1, "provinsi": 1,
+         "first_seen": 1, "last_seen": 1, "order_count": 1},
+    ).sort("first_seen", -1).limit(max(1, min(limit, 100)))
+    rows = await cursor.to_list(limit)
+
+    unseen = 0
+    items = []
+    for c in rows:
+        fs = _to_dt(c.get("first_seen"))
+        is_new = bool(fs and fs > seen_until)
+        if is_new:
+            unseen += 1
+        items.append({
+            "id": c.get("id"),
+            "name": c.get("recipient_name") or c.get("tiktok_username") or "-",
+            "handle": c.get("tiktok_username") or "",
+            "phone": c.get("phone") or "",
+            "followers": int(c.get("tiktok_followers_num") or 0),
+            "likes": int(c.get("tiktok_likes_num") or 0),
+            "kota": c.get("kota") or "",
+            "provinsi": c.get("provinsi") or "",
+            "first_seen": (fs.isoformat() if fs else None),
+            "order_count": int(c.get("order_count") or 0),
+            "is_new": is_new,
+        })
+    return {"threshold": INFLUENTIAL_THRESHOLD, "unseen": unseen, "items": items}
+
+
+@api.post("/alerts/mark-read")
+async def alerts_mark_read(user=Depends(get_current_user)):
+    email = user.get("email") or ""
+    now = datetime.now(timezone.utc)
+    await db.user_prefs.update_one(
+        {"email": email},
+        {"$set": {"email": email, "alerts_seen_until": now.isoformat()}},
+        upsert=True,
+    )
+    return {"ok": True, "seen_at": now.isoformat()}
+
+
+# ---------------------------------------------------------------------------
 # Wire router + CORS
 # ---------------------------------------------------------------------------
 app.include_router(api)

@@ -10,62 +10,54 @@ Full-stack CRM for Indonesian TikTok Shop sellers. TikTok doesn't expose buyer d
 2. Vision extraction via Gemini 3 Flash + Emergent LLM key.
 3. Bulk ZIP screenshot ingestion.
 4. Dedup by phone; repeat-buyer detection.
-5. Customer DB: search, tag filter, notes, drawer, bulk actions, sortable Followers/Orders/LastSeen, Profesi column.
+5. Customer DB with sortable Followers/Orders/LastSeen + Profesi column.
 6. Region normalization.
 7. ECharts Indonesia map + drill-down.
 8. Creator analytics + niche.
 9. CSV order import + Perlu Di-SS gap + product revenue per variant.
-10. Reminder segments (30-59/60-89/90+ days) with WA greet.
-11. Segments & Export — CSV, PDF, staggered WA broadcast + follower-tier filter + profession keyword filter.
+10. Reminder segments with WA greet.
+11. Segments & Export — CSV, PDF, staggered WA broadcast + follower-tier + profession filter.
 12. Owner-only audit trail.
 13. Bilingual UI (ID/EN) + `Accept-Language` backend.
-14. Rich 5-step Onboarding tutorial.
-15. Onboarding Progress Checklist on Dashboard.
-16. Login copy — pain-first message.
-17. TikTok profile stats — vision extracts followers + likes; sortable column; TikTok Profile card in drawer.
-18. Profession enrichment — manual input + one-click Google-LinkedIn search + segment keyword filter.
-19. Public Landing Page (`/`) — first version with orange theme + Indonesia map mockup.
-20. **Dark-mode SaaS Redesign (Feb 2026)** — user-supplied HTML dark-mode design applied globally:
-    - New Landing.jsx built in dark neon (teal `#22d3ee` + purple `#a855f7`) with glass-morphism cards, ambient glow orbs, gradient text, floating animations.
-    - Hero copy remains "Faktanya: Anda **buta** di marketplace sendiri" (bilingual) with keyword highlighted via cyan→blue→purple gradient.
-    - Mockup replaced from map to a pure customer database table (per new design): 4 rows with BERPENGARUH badge, active/idle status pills, floating "12 pembeli >10K followers" badge, browser chrome with traffic-lights.
-    - How It Works: 3 staggered glass cards (mt-0, md:mt-8, md:mt-16) with cyan/purple/blue icon backgrounds and giant background numerals.
-    - Features: 3 profile cards (SELEBGRAM / CALON AFILIATOR / PEMBELI SETIA) with gradient side accents.
-    - Business Impact: 3 metric cards with gradient numbers (5–7×, 0, ∞) + purple→cyan CTA.
-    - Footer: glass badge chips + PDP UU 27/2022.
-    - Login form rebuilt to match dark theme with ambient orbs.
-    - Global CSS overrides propagate dark theme to ALL dashboard pages without touching individual files: `text-stone-*` → light shades, `bg-stone-*` → dark surfaces, `text-orange-*` → cyan, `border-stone-*` → transparent white, `bg-white` → dark surface, `.pp-card` / `.pp-input` / `.pp-btn-*` / `.pp-table` all rewritten dark.
-    - Onboarding modal header gradient updated cyan→blue→purple to match.
-    - Sonner Toaster forced `theme="dark"`.
-    - Shadcn base variables switched to dark HSL palette.
-    - Hero fits exactly in 1440×900 viewport (crop-safe for contest showcase) — no scroll, all elements visible.
+14. Onboarding tutorial + Progress Checklist.
+15. TikTok profile stats extraction (followers + likes) + sortable Followers column.
+16. Profession enrichment + Google-LinkedIn quick search.
+17. Public Landing Page (`/`) with auto-login demo chips.
+18. **Dark-mode SaaS Redesign** (Feb 2026) — neon teal/purple palette, glass-morphism, gradient text, ambient orbs, floating animations. Global CSS overrides cascade dark theme to all dashboard pages.
+19. **Chart Recoloring (Feb 2026)** — MapAnalysis & CreatorAnalysis bar charts now use `echarts.graphic.LinearGradient` cyan→blue→purple. Choropleth map uses cyan color scale. Dark tooltip backgrounds, light axis text.
+20. **Influential Buyer Alerts (Feb 2026)**:
+    - Backend endpoints: `GET /api/alerts/influential?limit=N` returns customers with `tiktok_followers_num >= 100_000` including per-user `is_new` flag, and `POST /api/alerts/mark-read` sets last-seen timestamp in `user_prefs` collection keyed by email.
+    - Frontend `AlertBell.jsx` — bell icon in sidebar + mobile top bar with pulsing badge count, dropdown panel listing name/handle/followers/likes/city + "Mark all as read" button, auto-refresh every 60s.
+    - Bilingual copy (`alerts.*` keys in i18n).
 
-## Data Model — Customer
-- `tiktok_followers`, `tiktok_likes` (string), `tiktok_followers_num`, `tiktok_likes_num` (int)
-- `profession` (string)
-- Standard: `phone`, `recipient_name`, `tiktok_username`, address hierarchy, tags, notes, order_count, source
+## Data Model
+- **customer**: `tiktok_followers_num`, `tiktok_likes_num`, `profession`, standard fields.
+- **user_prefs** (NEW): `{ email, alerts_seen_until }` — one doc per user, upserted on mark-read.
 
 ## Architecture
 ```
 /app/
 ├── backend/
-│   ├── server.py         # ~1210 lines
+│   ├── server.py         # + /api/alerts/influential + /api/alerts/mark-read
 │   ├── vision_service.py
 │   ├── seed_data.py
 │   ├── i18n.py
 │   └── auth.py
 ├── frontend/
 │   ├── src/
-│   │   ├── index.css         # DARK theme + glass/gradient utilities + tailwind class overrides
+│   │   ├── index.css                # Dark theme + glass utilities + tailwind overrides
 │   │   ├── pages/
-│   │   │   ├── Landing.jsx   # DARK neon SaaS redesign (root `/`)
-│   │   │   ├── Login.jsx     # DARK matching login form (/login)
-│   │   │   └── ...           # Dashboard pages inherit dark via CSS cascades
+│   │   │   ├── Landing.jsx          # Dark neon SaaS
+│   │   │   ├── Login.jsx            # Matching dark login
+│   │   │   ├── MapAnalysis.jsx      # Cyan-purple gradient charts + dark choropleth
+│   │   │   ├── CreatorAnalysis.jsx  # Cyan-purple gradient bar chart
+│   │   │   └── ... (all pages inherit dark via CSS cascade)
 │   │   ├── components/
-│   │   │   ├── Layout.jsx    # sidebar (dark via CSS vars)
-│   │   │   ├── Onboarding.jsx # header gradient updated cyan→purple
+│   │   │   ├── Layout.jsx           # + AlertBell in sidebar & mobile top bar
+│   │   │   ├── AlertBell.jsx        # NEW — dropdown with unseen count
+│   │   │   ├── Onboarding.jsx       # Header gradient cyan→purple
 │   │   │   └── OnboardingProgress.jsx
-│   │   └── lib/i18n.jsx      # bilingual keys incl. land.* namespace
+│   │   └── lib/i18n.jsx             # + alerts.* keys (ID/EN)
 │   └── package.json
 └── memory/
     ├── PRD.md
@@ -73,22 +65,21 @@ Full-stack CRM for Indonesian TikTok Shop sellers. TikTok doesn't expose buyer d
 ```
 
 ## Route Structure
-- `/` — public Landing (dark neon)
+- `/` — public Landing
 - `/login` — public login form
-- `/dashboard/*` — protected app (auto-redirect to `/` if not logged in)
-- Auto-login demo chips on Landing hero call `login()` and jump to `/dashboard`
+- `/dashboard/*` — protected app
 
 ## Backlog / Next
-- **KOL Outreach Template**: Follower-tier specific WhatsApp templates
+- **KOL Outreach Template**: Follower-tier-specific WhatsApp templates
 - **Engagement Rate Filter**: likes/followers ratio filter
-- **Trial Watermark**: "Demo" watermark on PDF/CSV exports
-- **Macro Buyer Alert**: Notify when new buyer with >100K followers enters
-- **Broadcast Queue Polish**: Verify 5–10 sec spacing prevents WA spam flags
-- **Chart Recoloring**: Peta & CreatorAnalysis chart bars still use warm orange; consider migrating to cyan/purple gradient for full dark-theme consistency (charts remain readable now but not on-palette)
+- **Trial Watermark**: "Demo" watermark on PDF/CSV exports for non-activated licenses
+- **Broadcast Queue Polish**: Verify 5-10 sec spacing prevents WA spam flags
+- **Push Notifications**: Extend AlertBell with browser push / email so seller sees alerts even when app closed
+- **Alert Feed Page**: Full-page `/dashboard/alerts` history for macro buyers, not just dropdown
 
 ## Notes for Next Agent
-1. Dark-theme is driven by `/app/frontend/src/index.css` — root CSS vars + Tailwind class overrides. Editing individual dashboard pages is USUALLY not needed for palette changes.
-2. Landing/Login are the only page files that reference dark-specific utility classes directly (`glass`, `text-gradient`, `ambient-glow`, `animate-blob`, `animate-float`, `animate-pulse-glow`).
-3. Onboarding.jsx modal header gradient is inline-styled; update `linear-gradient` there for future palette shifts.
-4. Sonner is forced `theme="dark"` in App.js.
-5. Preserve emergent LLM key for Gemini 3 Flash extraction; don't switch providers.
+1. Dark theme cascades via `/app/frontend/src/index.css` global overrides. New pages will inherit dark automatically if they use `pp-*` classes and `text-stone-*` / `bg-stone-*` Tailwind utilities.
+2. `echarts.graphic.LinearGradient` used for bar chart gradients — reuse pattern for any new charts.
+3. `user_prefs` collection is a general-purpose per-user key-value store — add more preferences (theme, defaults) here rather than new collections.
+4. Alert threshold `INFLUENTIAL_THRESHOLD = 100_000` is a module constant in `server.py` — bump it there if seller wants stricter filter.
+5. AlertBell auto-refreshes every 60s via `setInterval`; disable if backend load becomes a concern.

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 import ReactECharts from "echarts-for-react";
+import * as echarts from "echarts";
 import { Sparkles, Tag } from "lucide-react";
 import { useT } from "@/lib/i18n.jsx";
 
@@ -29,17 +30,24 @@ export default function CreatorAnalysis() {
 
   const chartOpt = {
     grid: { left: 130, right: 20, top: 10, bottom: 20 },
-    xAxis: { type: "value", splitLine: { lineStyle: { color: "#EDE8DE" } } },
+    xAxis: { type: "value", axisLabel: { color: "#cbd5e1" }, splitLine: { lineStyle: { color: "rgba(255,255,255,0.06)" } } },
     yAxis: {
       type: "category",
       data: data.creators.slice(0, 12).map((c) => c.is_organic ? t("cr.organic") : `@${c.handle}`).reverse(),
-      axisLabel: { fontFamily: "Plus Jakarta Sans", fontSize: 11 },
+      axisLabel: { color: "#cbd5e1", fontFamily: "Plus Jakarta Sans", fontSize: 11 },
     },
-    tooltip: { trigger: "axis" },
+    tooltip: { trigger: "axis", backgroundColor: "#121828", borderColor: "rgba(255,255,255,0.1)", textStyle: { color: "#fff" } },
     series: [{
       type: "bar",
       data: data.creators.slice(0, 12).map((c) => c.total_orders).reverse(),
-      itemStyle: { color: "#C2410C", borderRadius: [0, 6, 6, 0] },
+      itemStyle: {
+        color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+          { offset: 0, color: "#22d3ee" },
+          { offset: 0.5, color: "#60a5fa" },
+          { offset: 1, color: "#a855f7" },
+        ]),
+        borderRadius: [0, 6, 6, 0],
+      },
       barWidth: 14,
     }],
   };

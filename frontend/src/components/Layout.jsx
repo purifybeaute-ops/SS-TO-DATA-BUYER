@@ -5,6 +5,7 @@ import { useT } from "@/lib/i18n";
 import Onboarding from "@/components/Onboarding";
 import PKLogo from "@/components/PKLogo";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import AlertBell from "@/components/AlertBell";
 import {
   LayoutDashboard, Upload as UploadIcon, Users, Map, Sparkles,
   ClipboardList, Filter, Settings, Info, LogOut, Package, Clock, HelpCircle, ScrollText,
@@ -78,11 +79,12 @@ export default function Layout() {
         </nav>
 
         <div className="p-3 border-t space-y-2" style={{ borderColor: "var(--border)" }}>
-          <div className="flex items-center justify-between px-2">
-            <div className="text-xs text-stone-600 min-w-0">
+          <div className="flex items-center justify-between px-2 gap-2">
+            <div className="text-xs text-stone-600 min-w-0 flex-1">
               <div className="font-medium truncate">{user?.name || user?.email}</div>
               <div className="text-[10px] uppercase tracking-wider text-stone-400">{user?.role}</div>
             </div>
+            <AlertBell />
             <LanguageSwitcher />
           </div>
           <button
@@ -107,6 +109,7 @@ export default function Layout() {
         <PKLogo size={32} />
         <div className="font-display font-bold text-base">PelangganKu</div>
         <div className="ml-auto flex items-center gap-2">
+          <AlertBell />
           <LanguageSwitcher variant="compact" />
           <button onClick={logout} className="text-xs text-stone-600 flex items-center gap-1"
                   data-testid="btn-logout-mobile">

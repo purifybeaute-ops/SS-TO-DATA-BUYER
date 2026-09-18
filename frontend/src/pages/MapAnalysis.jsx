@@ -33,7 +33,17 @@ const MAP_NAME_ALIAS = {
   "Kep. Riau": "Kepulauan Riau",
 };
 
-const COLOR_SCALE = ["#FFEDD5", "#FDBA74", "#FB923C", "#E05206", "#9A3412"];
+const COLOR_SCALE = ["#164e63", "#0e7490", "#0891b2", "#22d3ee", "#67e8f9"];
+
+// Cyan → purple gradient reused for bar charts on dark theme
+const barGradient = () => new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+  { offset: 0, color: "#22d3ee" },
+  { offset: 0.5, color: "#60a5fa" },
+  { offset: 1, color: "#a855f7" },
+]);
+const AXIS_LINE = "rgba(255,255,255,0.12)";
+const AXIS_SPLIT = "rgba(255,255,255,0.06)";
+const AXIS_TEXT = "#cbd5e1";
 
 export default function MapAnalysis() {
   const { t } = useT();
@@ -113,9 +123,12 @@ export default function MapAnalysis() {
     return {
       tooltip: {
         trigger: "item",
+        backgroundColor: "#121828",
+        borderColor: "rgba(255,255,255,0.1)",
+        textStyle: { color: "#fff" },
         formatter: (p) => {
           const pct = total ? ((p.value / total) * 100).toFixed(1) : 0;
-          return `<div style="font-family: 'Plus Jakarta Sans'"><b>${p.name}</b><br/>${t("map.tooltip.buyers")}: <b>${p.value || 0}</b><br/>${pct}% ${t("map.tooltip.pct")}</div>`;
+          return `<div style="font-family: 'Plus Jakarta Sans'; color:#fff"><b>${p.name}</b><br/>${t("map.tooltip.buyers")}: <b>${p.value || 0}</b><br/>${pct}% ${t("map.tooltip.pct")}</div>`;
         },
       },
       visualMap: {
@@ -124,8 +137,8 @@ export default function MapAnalysis() {
         left: 10,
         bottom: 20,
         text: [t("map.legend.many"), t("map.legend.few")],
-        inRange: { color: ["#F5F1E8", ...COLOR_SCALE] },
-        textStyle: { color: "#57534E", fontFamily: "Plus Jakarta Sans" },
+        inRange: { color: ["#0d1424", ...COLOR_SCALE] },
+        textStyle: { color: AXIS_TEXT, fontFamily: "Plus Jakarta Sans" },
         calculable: true,
         itemWidth: 14,
       },
@@ -136,13 +149,13 @@ export default function MapAnalysis() {
         aspectScale: 1,
         emphasis: {
           label: { show: false },
-          itemStyle: { areaColor: "#C2410C", borderColor: "#7C2D12" },
+          itemStyle: { areaColor: "#22d3ee", borderColor: "#67e8f9" },
         },
         select: {
-          itemStyle: { areaColor: "#9A3412", borderColor: "#431407" },
+          itemStyle: { areaColor: "#a855f7", borderColor: "#c084fc" },
           label: { color: "#FFFFFF" },
         },
-        itemStyle: { borderColor: "#D4CBB5", borderWidth: 0.6 },
+        itemStyle: { borderColor: "rgba(255,255,255,0.12)", borderWidth: 0.6, areaColor: "#0f1424" },
         data: mapData,
       }],
     };
@@ -150,52 +163,52 @@ export default function MapAnalysis() {
 
   const provChart = useMemo(() => ({
     grid: { left: 140, right: 20, top: 10, bottom: 20 },
-    xAxis: { type: "value", axisLine: { lineStyle: { color: "#D4CBB5" } }, splitLine: { lineStyle: { color: "#EDE8DE" } }},
+    xAxis: { type: "value", axisLine: { lineStyle: { color: AXIS_LINE } }, axisLabel: { color: AXIS_TEXT }, splitLine: { lineStyle: { color: AXIS_SPLIT } }},
     yAxis: {
       type: "category",
       data: data.provinsi.slice(0, 15).map((p) => p.name).reverse(),
-      axisLine: { lineStyle: { color: "#D4CBB5" } },
-      axisLabel: { color: "#1C1917", fontFamily: "Plus Jakarta Sans", fontSize: 11 },
+      axisLine: { lineStyle: { color: AXIS_LINE } },
+      axisLabel: { color: AXIS_TEXT, fontFamily: "Plus Jakarta Sans", fontSize: 11 },
     },
-    tooltip: { trigger: "axis" },
+    tooltip: { trigger: "axis", backgroundColor: "#121828", borderColor: "rgba(255,255,255,0.1)", textStyle: { color: "#fff" } },
     series: [{
       type: "bar",
       data: data.provinsi.slice(0, 15).map((p) => p.count).reverse(),
-      itemStyle: { color: "#C2410C", borderRadius: [0, 6, 6, 0] },
+      itemStyle: { color: barGradient(), borderRadius: [0, 6, 6, 0] },
       barWidth: 14,
     }],
   }), [data.provinsi]);
 
   const kotaChart = useMemo(() => ({
     grid: { left: 160, right: 20, top: 10, bottom: 20 },
-    xAxis: { type: "value", splitLine: { lineStyle: { color: "#EDE8DE" } }},
+    xAxis: { type: "value", axisLabel: { color: AXIS_TEXT }, splitLine: { lineStyle: { color: AXIS_SPLIT } }},
     yAxis: {
       type: "category",
       data: data.kota.slice(0, 15).map((p) => p.name).reverse(),
-      axisLabel: { color: "#1C1917", fontFamily: "Plus Jakarta Sans", fontSize: 11 },
+      axisLabel: { color: AXIS_TEXT, fontFamily: "Plus Jakarta Sans", fontSize: 11 },
     },
-    tooltip: { trigger: "axis" },
+    tooltip: { trigger: "axis", backgroundColor: "#121828", borderColor: "rgba(255,255,255,0.1)", textStyle: { color: "#fff" } },
     series: [{
       type: "bar",
       data: data.kota.slice(0, 15).map((p) => p.count).reverse(),
-      itemStyle: { color: "#D97706", borderRadius: [0, 6, 6, 0] },
+      itemStyle: { color: barGradient(), borderRadius: [0, 6, 6, 0] },
       barWidth: 14,
     }],
   }), [data.kota]);
 
   const kecChart = useMemo(() => ({
     grid: { left: 160, right: 20, top: 10, bottom: 20 },
-    xAxis: { type: "value", splitLine: { lineStyle: { color: "#EDE8DE" } }},
+    xAxis: { type: "value", axisLabel: { color: AXIS_TEXT }, splitLine: { lineStyle: { color: AXIS_SPLIT } }},
     yAxis: {
       type: "category",
       data: data.kecamatan.slice(0, 12).map((p) => p.name).reverse(),
-      axisLabel: { color: "#1C1917", fontFamily: "Plus Jakarta Sans", fontSize: 11 },
+      axisLabel: { color: AXIS_TEXT, fontFamily: "Plus Jakarta Sans", fontSize: 11 },
     },
-    tooltip: { trigger: "axis" },
+    tooltip: { trigger: "axis", backgroundColor: "#121828", borderColor: "rgba(255,255,255,0.1)", textStyle: { color: "#fff" } },
     series: [{
       type: "bar",
       data: data.kecamatan.slice(0, 12).map((p) => p.count).reverse(),
-      itemStyle: { color: "#B45309", borderRadius: [0, 6, 6, 0] },
+      itemStyle: { color: barGradient(), borderRadius: [0, 6, 6, 0] },
       barWidth: 14,
     }],
   }), [data.kecamatan]);
