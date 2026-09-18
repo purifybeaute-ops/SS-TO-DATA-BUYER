@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useAuth } from "@/lib/auth.jsx";
 import { useT } from "@/lib/i18n";
-import { useNavigate, Navigate } from "react-router-dom";
+import { useNavigate, Navigate, Link } from "react-router-dom";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, ArrowLeft } from "lucide-react";
 import PKLogo from "@/components/PKLogo";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 
@@ -15,7 +15,7 @@ export default function Login() {
   const [password, setPassword] = useState("owner123");
   const [loading, setLoading] = useState(false);
 
-  if (user) return <Navigate to="/" replace />;
+  if (user) return <Navigate to="/dashboard" replace />;
 
   const submit = async (e) => {
     e.preventDefault();
@@ -23,7 +23,7 @@ export default function Login() {
     try {
       await login(email.trim().toLowerCase(), password);
       toast.success(t("login.success"));
-      nav("/", { replace: true });
+      nav("/dashboard", { replace: true });
     } catch (err) {
       toast.error(err?.response?.data?.detail || t("login.failed"));
     } finally {
@@ -37,86 +37,80 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-stretch grain-texture" style={{ background: "var(--bg)" }}>
-      <div className="hidden lg:flex flex-1 items-center justify-center p-12"
-           style={{ background: "linear-gradient(160deg, #FFEDD5 0%, #FED7AA 60%, #FDBA74 100%)" }}>
-        <div className="max-w-md">
-          <div className="flex items-center gap-3 mb-6">
-            <PKLogo size={56} />
-            <div>
-              <div className="font-display font-extrabold text-xl text-stone-900 leading-tight">PelangganKu</div>
-              <div className="text-xs uppercase tracking-widest text-orange-900/70">{t("brand.tagline")}</div>
-            </div>
-          </div>
-          <h1 className="font-display text-5xl font-extrabold leading-[1.05] text-stone-900 mb-4">
-            {t("login.hero")}
-          </h1>
-          <p className="text-stone-700 text-base leading-relaxed">{t("login.subhero")}</p>
-          <p className="text-stone-800 text-base leading-relaxed mt-3">
-            <strong className="text-orange-900">{t("login.solutionLead")}</strong>{" "}
-            {t("login.solutionBody")}
-          </p>
-          <div className="mt-8 flex items-center gap-3 text-sm text-stone-700">
-            <div className="flex -space-x-2">
-              <div className="w-8 h-8 rounded-full border-2 border-white" style={{ background: "#C2410C" }} />
-              <div className="w-8 h-8 rounded-full border-2 border-white" style={{ background: "#D97706" }} />
-              <div className="w-8 h-8 rounded-full border-2 border-white" style={{ background: "#B45309" }} />
-            </div>
-            <span>{t("login.demoCount")}</span>
-          </div>
-        </div>
-      </div>
+    <div className="min-h-screen flex items-center justify-center px-6 py-12 relative overflow-hidden"
+         style={{ background: "var(--bg)" }}>
+      {/* Soft orange radial + dot grid backdrop */}
+      <div className="absolute inset-0 pointer-events-none"
+           style={{
+             backgroundImage:
+               "radial-gradient(circle at 100% 0%, rgba(253,186,116,0.28) 0%, rgba(253,186,116,0) 40%)," +
+               "radial-gradient(circle at 0% 100%, rgba(254,215,170,0.22) 0%, rgba(254,215,170,0) 40%)",
+           }} />
+      <div className="absolute inset-0 pointer-events-none opacity-30"
+           style={{
+             backgroundImage:
+               "radial-gradient(circle, rgba(120,113,108,0.16) 1px, transparent 1px)",
+             backgroundSize: "22px 22px",
+           }} />
 
-      <div className="flex-1 flex items-center justify-center p-6 lg:p-12">
-        <form onSubmit={submit} className="w-full max-w-sm space-y-5" data-testid="login-form">
-          <div className="flex items-center justify-between mb-2">
-            <div className="lg:hidden flex items-center gap-2">
+      <div className="relative w-full max-w-sm">
+        <Link to="/" className="inline-flex items-center gap-1.5 text-xs text-stone-500 hover:text-stone-800 mb-6"
+              data-testid="login-back-home">
+          <ArrowLeft className="w-3.5 h-3.5" /> PelangganKu
+        </Link>
+
+        <div className="pp-card p-7">
+          <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center gap-2.5">
               <PKLogo size={40} />
-              <div className="font-display font-extrabold text-lg">PelangganKu</div>
+              <div>
+                <div className="font-display font-extrabold text-base leading-none text-stone-900">PelangganKu</div>
+                <div className="text-[9px] uppercase tracking-widest text-stone-500 mt-0.5">{t("brand.tagline")}</div>
+              </div>
             </div>
-            <div className="ml-auto"><LanguageSwitcher /></div>
+            <LanguageSwitcher />
           </div>
 
-          <div>
-            <h2 className="font-display text-2xl font-bold text-stone-900">{t("login.title")}</h2>
-            <p className="text-sm text-stone-500 mt-1">{t("login.subtitle")}</p>
+          <div className="mb-5">
+            <h2 className="font-display text-xl font-bold text-stone-900">{t("login.title")}</h2>
+            <p className="text-xs text-stone-500 mt-1">{t("login.subtitle")}</p>
           </div>
 
-          <div className="space-y-3">
+          <form onSubmit={submit} className="space-y-4" data-testid="login-form">
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-stone-500 mb-1.5">{t("login.email")}</label>
+              <label className="block text-[10px] font-semibold uppercase tracking-wider text-stone-500 mb-1.5">{t("login.email")}</label>
               <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required
                      data-testid="login-email-input"
-                     className="pp-input w-full rounded-lg px-3.5 py-2.5 text-sm" />
+                     className="pp-input w-full rounded-lg px-3 py-2.5 text-sm" />
             </div>
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-stone-500 mb-1.5">{t("login.password")}</label>
+              <label className="block text-[10px] font-semibold uppercase tracking-wider text-stone-500 mb-1.5">{t("login.password")}</label>
               <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required
                      data-testid="login-password-input"
-                     className="pp-input w-full rounded-lg px-3.5 py-2.5 text-sm" />
+                     className="pp-input w-full rounded-lg px-3 py-2.5 text-sm" />
             </div>
-          </div>
 
-          <button type="submit" disabled={loading} data-testid="login-submit-btn"
-                  className="pp-btn-primary w-full rounded-lg py-2.5 font-semibold text-sm inline-flex items-center justify-center gap-2">
-            {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-            {loading ? t("login.processing") : t("login.submit")}
-          </button>
+            <button type="submit" disabled={loading} data-testid="login-submit-btn"
+                    className="pp-btn-primary w-full rounded-lg py-2.5 font-semibold text-sm inline-flex items-center justify-center gap-2">
+              {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+              {loading ? t("login.processing") : t("login.submit")}
+            </button>
 
-          <div className="pt-3 border-t text-xs text-stone-500 space-y-2" style={{ borderColor: "var(--border)" }}>
-            <div className="uppercase tracking-wider font-semibold text-stone-400">{t("login.demoAccounts")}</div>
-            <div className="flex gap-2">
-              <button type="button" onClick={() => pickDemo("owner")} data-testid="demo-owner-btn"
-                      className="pp-btn-secondary flex-1 rounded-lg py-2 text-xs">
-                {t("login.demoOwner")}
-              </button>
-              <button type="button" onClick={() => pickDemo("operator")} data-testid="demo-operator-btn"
-                      className="pp-btn-secondary flex-1 rounded-lg py-2 text-xs">
-                {t("login.demoOperator")}
-              </button>
+            <div className="pt-3 border-t text-xs text-stone-500 space-y-2" style={{ borderColor: "var(--border)" }}>
+              <div className="uppercase tracking-wider font-semibold text-stone-400 text-[10px]">{t("login.demoAccounts")}</div>
+              <div className="flex gap-2">
+                <button type="button" onClick={() => pickDemo("owner")} data-testid="demo-owner-btn"
+                        className="pp-btn-secondary flex-1 rounded-lg py-2 text-xs">
+                  {t("login.demoOwner")}
+                </button>
+                <button type="button" onClick={() => pickDemo("operator")} data-testid="demo-operator-btn"
+                        className="pp-btn-secondary flex-1 rounded-lg py-2 text-xs">
+                  {t("login.demoOperator")}
+                </button>
+              </div>
             </div>
-          </div>
-        </form>
+          </form>
+        </div>
       </div>
     </div>
   );

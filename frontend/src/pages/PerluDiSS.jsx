@@ -70,7 +70,7 @@ export default function PerluDiSS() {
           <input type="file" accept=".csv" hidden onChange={(e) => e.target.files?.[0] && importCsv(e.target.files[0])}
                  data-testid="csv-import-input" />
         </label>
-        <Link to="/pengaturan" className="text-xs pp-link">{t("ss.mapping")}</Link>
+        <Link to="/dashboard/pengaturan" className="text-xs pp-link">{t("ss.mapping")}</Link>
       </div>
 
       {gap.gap.length === 0 ? (

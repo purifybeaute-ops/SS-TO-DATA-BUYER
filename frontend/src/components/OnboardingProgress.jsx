@@ -26,7 +26,7 @@ export default function OnboardingProgress({ onboarding }) {
         label: t("dash.progress.csv"),
         doneLabel: t("dash.progress.csv.done", { n: onboarding.csv_count || 0 }),
         cta: t("dash.progress.csv.cta"),
-        to: "/perlu-ss",
+        to: "/dashboard/perlu-ss",
       },
       {
         key: "ss1",
@@ -34,7 +34,7 @@ export default function OnboardingProgress({ onboarding }) {
         label: t("dash.progress.ss1"),
         doneLabel: t("dash.progress.ss1.done"),
         cta: t("dash.progress.ss1.cta"),
-        to: "/upload",
+        to: "/dashboard/upload",
       },
       {
         key: "ss5",
@@ -42,7 +42,7 @@ export default function OnboardingProgress({ onboarding }) {
         label: t("dash.progress.ss5"),
         doneLabel: t("dash.progress.ss5.done", { n: onboarding.ss_count || 0 }),
         cta: t("dash.progress.ss5.cta"),
-        to: "/upload",
+        to: "/dashboard/upload",
       },
       {
         key: "tag",
@@ -50,7 +50,7 @@ export default function OnboardingProgress({ onboarding }) {
         label: t("dash.progress.tag"),
         doneLabel: t("dash.progress.tag.done", { n: onboarding.tagged_count || 0 }),
         cta: t("dash.progress.tag.cta"),
-        to: "/pelanggan",
+        to: "/dashboard/pelanggan",
       },
       {
         key: "pdf",
@@ -58,7 +58,7 @@ export default function OnboardingProgress({ onboarding }) {
         label: t("dash.progress.pdf"),
         doneLabel: t("dash.progress.pdf.done"),
         cta: t("dash.progress.pdf.cta"),
-        to: "/pengaturan",
+        to: "/dashboard/pengaturan",
       },
     ];
   }, [onboarding, t]);

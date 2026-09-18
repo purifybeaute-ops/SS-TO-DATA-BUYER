@@ -32,7 +32,7 @@ export default function Dashboard() {
           </h1>
           <p className="text-stone-600 mt-2 max-w-xl">{t("dash.subheading")}</p>
         </div>
-        <Link to="/upload" data-testid="dashboard-upload-cta"
+        <Link to="/dashboard/upload" data-testid="dashboard-upload-cta"
               className="pp-btn-primary rounded-lg px-4 py-2.5 text-sm font-semibold inline-flex items-center gap-2 self-start">
           <UploadIcon className="w-4 h-4" /> {t("dash.uploadCta")}
         </Link>
@@ -60,13 +60,13 @@ export default function Dashboard() {
         <div className="lg:col-span-2 pp-card p-5">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-display font-bold text-lg text-stone-900">{t("dash.recentCustomers")}</h2>
-            <Link to="/pelanggan" className="text-xs text-orange-700 flex items-center gap-1 hover:underline">
+            <Link to="/dashboard/pelanggan" className="text-xs text-orange-700 flex items-center gap-1 hover:underline">
               {t("dash.viewAll")} <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
           {recent.length === 0 ? (
             <div className="text-sm text-stone-500 py-8 text-center">
-              {t("dash.emptyCustomers")} <Link to="/upload" className="pp-link">{t("dash.uploadFirst")}</Link>.
+              {t("dash.emptyCustomers")} <Link to="/dashboard/upload" className="pp-link">{t("dash.uploadFirst")}</Link>.
             </div>
           ) : (
             <div className="divide-y" style={{ borderColor: "var(--border)" }}>
@@ -93,16 +93,16 @@ export default function Dashboard() {
         <div className="pp-card p-5">
           <h2 className="font-display font-bold text-lg text-stone-900 mb-3">{t("dash.quickActions")}</h2>
           <div className="space-y-2 text-sm">
-            <Link to="/peta" className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-stone-50 border border-stone-200">
+            <Link to="/dashboard/peta" className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-stone-50 border border-stone-200">
               <span>{t("dash.qa.map")}</span><ArrowRight className="w-4 h-4 text-orange-700" />
             </Link>
-            <Link to="/creator" className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-stone-50 border border-stone-200">
+            <Link to="/dashboard/creator" className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-stone-50 border border-stone-200">
               <span>{t("dash.qa.creator")}</span><ArrowRight className="w-4 h-4 text-orange-700" />
             </Link>
-            <Link to="/segmen" className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-stone-50 border border-stone-200">
+            <Link to="/dashboard/segmen" className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-stone-50 border border-stone-200">
               <span>{t("dash.qa.segmen")}</span><ArrowRight className="w-4 h-4 text-orange-700" />
             </Link>
-            <Link to="/perlu-ss" className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-stone-50 border border-stone-200">
+            <Link to="/dashboard/perlu-ss" className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-stone-50 border border-stone-200">
               <span>{t("dash.qa.perluss")}</span><ArrowRight className="w-4 h-4 text-orange-700" />
             </Link>
           </div>

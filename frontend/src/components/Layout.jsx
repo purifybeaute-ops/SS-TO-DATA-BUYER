@@ -11,18 +11,18 @@ import {
 } from "lucide-react";
 
 const NAV = [
-  { to: "/", key: "nav.dashboard", icon: LayoutDashboard, testId: "nav-dashboard", end: true },
-  { to: "/upload", key: "nav.upload", icon: UploadIcon, testId: "nav-upload-ekstraksi" },
-  { to: "/pelanggan", key: "nav.customers", icon: Users, testId: "nav-database-pelanggan" },
-  { to: "/peta", key: "nav.map", icon: Map, testId: "nav-peta-lokasi" },
-  { to: "/creator", key: "nav.creator", icon: Sparkles, testId: "nav-analisis-creator" },
-  { to: "/produk", key: "nav.products", icon: Package, testId: "nav-produk" },
-  { to: "/reminder", key: "nav.reminder", icon: Clock, testId: "nav-reminder" },
-  { to: "/perlu-ss", key: "nav.perluss", icon: ClipboardList, testId: "nav-perlu-di-ss" },
-  { to: "/segmen", key: "nav.segmen", icon: Filter, testId: "nav-segmen-export" },
-  { to: "/riwayat", key: "nav.audit", icon: ScrollText, testId: "nav-riwayat", ownerOnly: true },
-  { to: "/pengaturan", key: "nav.settings", icon: Settings, testId: "nav-pengaturan" },
-  { to: "/tentang", key: "nav.about", icon: Info, testId: "nav-tentang" },
+  { to: "/dashboard", key: "nav.dashboard", icon: LayoutDashboard, testId: "nav-dashboard", end: true },
+  { to: "/dashboard/upload", key: "nav.upload", icon: UploadIcon, testId: "nav-upload-ekstraksi" },
+  { to: "/dashboard/pelanggan", key: "nav.customers", icon: Users, testId: "nav-database-pelanggan" },
+  { to: "/dashboard/peta", key: "nav.map", icon: Map, testId: "nav-peta-lokasi" },
+  { to: "/dashboard/creator", key: "nav.creator", icon: Sparkles, testId: "nav-analisis-creator" },
+  { to: "/dashboard/produk", key: "nav.products", icon: Package, testId: "nav-produk" },
+  { to: "/dashboard/reminder", key: "nav.reminder", icon: Clock, testId: "nav-reminder" },
+  { to: "/dashboard/perlu-ss", key: "nav.perluss", icon: ClipboardList, testId: "nav-perlu-di-ss" },
+  { to: "/dashboard/segmen", key: "nav.segmen", icon: Filter, testId: "nav-segmen-export" },
+  { to: "/dashboard/riwayat", key: "nav.audit", icon: ScrollText, testId: "nav-riwayat", ownerOnly: true },
+  { to: "/dashboard/pengaturan", key: "nav.settings", icon: Settings, testId: "nav-pengaturan" },
+  { to: "/dashboard/tentang", key: "nav.about", icon: Info, testId: "nav-tentang" },
 ];
 
 export default function Layout() {

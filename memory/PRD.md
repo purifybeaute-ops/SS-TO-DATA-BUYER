@@ -24,6 +24,7 @@ Full-stack CRM for Indonesian TikTok Shop sellers. TikTok doesn't expose buyer d
 16. Login copy — pain-first message mentioning TikTok follower/like counts.
 17. **TikTok profile stats** — vision extracts followers + likes; sortable Followers column; TikTok Profile card in drawer.
 18. **Profession enrichment** — per-customer `profession` field, drawer input + one-click Google-LinkedIn search (`google.com/search?q="Name" linkedin`), Profesi column in list, keyword filter in Segments. Seeded 15 demo customers with plausible professions (Guru SD, Dokter Gigi, Karyawan Bank BCA, PNS, IRT, UI/UX Designer, MUA, Dosen ITB, dll).
+19. **Public Landing Page (`/`)** — screenshot-ready hero (1440×900, crop-safe 16:10). Grid 55/45 container max-w-1200 px-20. Headline bilingual with dark/orange split, dot-grid + soft-orange radial backdrop. Custom SVG browser mockup: stylized Indonesia map with orange/gray pins + city labels, customer table with BERPENGARUH badge & inline Google icon, 2 floating stat cards. Auto-login demo chips (Owner/Operator) call `login()` directly and redirect to `/dashboard`. 3-step "Cara Kerja" section, 3 influencer buyer cards (SELEBGRAM / CALON AFILIATOR / PEMBELI SETIA), Dampak Bisnis metrics, footer with PDP UU 27/2022 note. Login form moved to `/login` (standalone, no split-screen). Protected routes moved from `/` to `/dashboard/*`.
 
 ## Data Model — Customer
 - `tiktok_followers`, `tiktok_likes` (string), `tiktok_followers_num`, `tiktok_likes_num` (int)

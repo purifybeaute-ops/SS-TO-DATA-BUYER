@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/lib/auth.jsx";
 import { LanguageProvider } from "@/lib/i18n";
 import { Toaster } from "@/components/ui/sonner";
+import Landing from "@/pages/Landing";
 import Login from "@/pages/Login";
 import Layout from "@/components/Layout";
 import Dashboard from "@/pages/Dashboard";
@@ -27,7 +28,7 @@ function Protected({ children }) {
       </div>
     );
   }
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user) return <Navigate to="/" replace />;
   return children;
 }
 
@@ -39,9 +40,10 @@ function App() {
           <BrowserRouter>
             <Toaster richColors position="top-right" />
             <Routes>
+              <Route path="/" element={<Landing />} />
               <Route path="/login" element={<Login />} />
               <Route
-                path="/"
+                path="/dashboard"
                 element={
                   <Protected>
                     <Layout />
@@ -61,6 +63,7 @@ function App() {
                 <Route path="pengaturan" element={<Pengaturan />} />
                 <Route path="tentang" element={<Tentang />} />
               </Route>
+              <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </BrowserRouter>
         </AuthProvider>

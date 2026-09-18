@@ -63,7 +63,7 @@ export default function AuditLog() {
     return Array.from(set);
   }, [logs]);
 
-  if (!isOwner) return <Navigate to="/" replace />;
+  if (!isOwner) return <Navigate to="/dashboard" replace />;
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-5" data-testid="audit-page">

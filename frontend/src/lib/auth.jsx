@@ -41,7 +41,7 @@ export function AuthProvider({ children }) {
     localStorage.removeItem("pp_token");
     localStorage.removeItem("pp_user");
     setUser(null);
-    window.location.href = "/login";
+    window.location.href = "/";
   };
 
   return (
