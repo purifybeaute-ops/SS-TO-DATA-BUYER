@@ -835,8 +835,19 @@ class SegmentFilter(BaseModel):
     creator: Optional[str] = None
     follower_tier: Optional[str] = None  # micro | mid | macro | unknown
     profession: Optional[str] = None  # keyword substring match
+    engagement_tier: Optional[str] = None  # low | medium | high | elite
     date_from: Optional[str] = None
     date_to: Optional[str] = None
+
+
+# Engagement tier thresholds (likes / followers ratio for total-lifetime TikTok stats).
+# Followers with < 500 are excluded so tiny fresh accounts don't distort the ratio.
+_ENGAGEMENT_BUCKETS = {
+    "low":    (0.0, 5.0),
+    "medium": (5.0, 10.0),
+    "high":   (10.0, 20.0),
+    "elite":  (20.0, 10_000.0),
+}
 
 
 async def _query_segment(f: SegmentFilter):
@@ -871,6 +882,20 @@ async def _query_segment(f: SegmentFilter):
     if f.profession:
         pat = re.escape(f.profession)
         query["profession"] = {"$regex": pat, "$options": "i"}
+    if f.engagement_tier in _ENGAGEMENT_BUCKETS:
+        lo, hi = _ENGAGEMENT_BUCKETS[f.engagement_tier]
+        # Require both fields present and followers >= 500 to make the ratio meaningful.
+        er_expr = {
+            "$and": [
+                {"$gte": [{"$ifNull": ["$tiktok_followers_num", 0]}, 500]},
+                {"$gt":  [{"$ifNull": ["$tiktok_likes_num", 0]}, 0]},
+                {"$gte": [{"$divide": [{"$ifNull": ["$tiktok_likes_num", 0]},
+                                       {"$ifNull": ["$tiktok_followers_num", 1]}]}, lo]},
+                {"$lt":  [{"$divide": [{"$ifNull": ["$tiktok_likes_num", 0]},
+                                       {"$ifNull": ["$tiktok_followers_num", 1]}]}, hi]},
+            ]
+        }
+        query["$expr"] = er_expr
     if f.date_from or f.date_to:
         rng = {}
         if f.date_from:
@@ -878,7 +903,13 @@ async def _query_segment(f: SegmentFilter):
         if f.date_to:
             rng["$lte"] = f.date_to
         query["last_seen"] = rng
-    return await db.customers.find(query, {"_id": 0}).to_list(5000)
+    rows = await db.customers.find(query, {"_id": 0}).to_list(5000)
+    # Attach engagement_rate to each row for downstream use (CSV/PDF export)
+    for c in rows:
+        f_n = c.get("tiktok_followers_num") or 0
+        l_n = c.get("tiktok_likes_num") or 0
+        c["engagement_rate"] = round(l_n / f_n, 2) if f_n >= 500 else None
+    return rows
 
 
 @api.post("/segments/preview")

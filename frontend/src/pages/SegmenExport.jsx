@@ -12,7 +12,7 @@ export default function SegmenExport() {
   const [tplLocal, setTplLocal] = useState("");
   const [filters, setFilters] = useState({
     kota: "", provinsi: "", repeat: "", tag_id: "", creator: "",
-    follower_tier: "", profession: "",
+    follower_tier: "", profession: "", engagement_tier: "",
     date_from: "", date_to: "",
   });
   const [preview, setPreview] = useState({ count: 0, customers: [] });
@@ -42,6 +42,7 @@ export default function SegmenExport() {
       creator: filters.creator || null,
       follower_tier: filters.follower_tier || null,
       profession: filters.profession || null,
+      engagement_tier: filters.engagement_tier || null,
       date_from: filters.date_from || null,
       date_to: filters.date_to || null,
     };
@@ -82,6 +83,7 @@ export default function SegmenExport() {
     tag_id: filters.tag_id || null, creator: filters.creator || null,
     follower_tier: filters.follower_tier || null,
     profession: filters.profession || null,
+    engagement_tier: filters.engagement_tier || null,
     date_from: filters.date_from || null, date_to: filters.date_to || null,
   });
 
@@ -207,6 +209,16 @@ export default function SegmenExport() {
           <Field label={t("seg.field.profession")}>
             <input value={filters.profession} onChange={(e) => setFilters({ ...filters, profession: e.target.value })}
                    className="pp-input rounded-md px-2.5 py-1.5 w-full" placeholder={t("seg.professionPlaceholder")} data-testid="seg-profession" />
+          </Field>
+          <Field label={t("seg.field.engagement")}>
+            <select value={filters.engagement_tier} onChange={(e) => setFilters({ ...filters, engagement_tier: e.target.value })}
+                    className="pp-input rounded-md px-2.5 py-1.5 w-full" data-testid="seg-engagement-tier">
+              <option value="">{t("seg.er.all")}</option>
+              <option value="elite">{t("seg.er.elite")}</option>
+              <option value="high">{t("seg.er.high")}</option>
+              <option value="medium">{t("seg.er.medium")}</option>
+              <option value="low">{t("seg.er.low")}</option>
+            </select>
           </Field>
           <Field label={t("seg.field.dateFrom")}>
             <input type="date" value={filters.date_from} onChange={(e) => setFilters({ ...filters, date_from: e.target.value })}
