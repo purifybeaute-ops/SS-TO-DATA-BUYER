@@ -13,21 +13,21 @@ import {
 /* ---------- Sub-components ---------- */
 
 function BrowserMock({ t }) {
-  // Simplified Indonesia map pins (relative % coords inside a stylized outline).
-  // Orange pins = high volume (>50), gray = low.
+  // Real-shape Indonesia archipelago. Pins are placed on actual island coordinates.
+  // viewBox 1000x500 covers Sumatra → Papua.
   const pins = [
-    { x: 22, y: 55, big: false, label: "" },              // Sumatra
-    { x: 28, y: 62, big: false, label: "" },
-    { x: 42, y: 68, big: true,  label: "Jakarta" },       // Jakarta
-    { x: 47, y: 70, big: false, label: "" },              // Bandung
-    { x: 55, y: 71, big: true,  label: "Surabaya" },      // Surabaya
-    { x: 60, y: 72, big: false, label: "" },              // Bali
-    { x: 68, y: 55, big: false, label: "" },              // Sulawesi
-    { x: 72, y: 62, big: true,  label: "Makassar" },      // Makassar
-    { x: 84, y: 60, big: false, label: "" },              // Papua
-    { x: 38, y: 60, big: false, label: "" },
-    { x: 51, y: 69, big: false, label: "" },
-    { x: 65, y: 66, big: false, label: "" },
+    { x: 140, y: 170, big: false, label: "" },      // Medan (Sumatra north)
+    { x: 200, y: 260, big: false, label: "" },      // Palembang (Sumatra south)
+    { x: 360, y: 350, big: true,  label: "Jakarta" },
+    { x: 425, y: 360, big: false, label: "" },      // Bandung
+    { x: 520, y: 355, big: true,  label: "Surabaya" },
+    { x: 590, y: 360, big: false, label: "" },      // Bali
+    { x: 460, y: 200, big: false, label: "" },      // Pontianak (Kalimantan)
+    { x: 545, y: 230, big: false, label: "" },      // Banjarmasin
+    { x: 680, y: 240, big: true,  label: "Makassar" },
+    { x: 700, y: 180, big: false, label: "" },      // Palu (Sulawesi)
+    { x: 870, y: 260, big: false, label: "" },      // Papua
+    { x: 930, y: 280, big: false, label: "" },
   ];
 
   const rows = [
@@ -60,56 +60,79 @@ function BrowserMock({ t }) {
         </div>
 
         {/* Content: 2 columns */}
-        <div className="grid grid-cols-12 gap-0" style={{ minHeight: "310px" }}>
+        <div className="grid grid-cols-12 gap-0" style={{ minHeight: "360px" }}>
           {/* Map side */}
-          <div className="col-span-5 p-3 border-r" style={{ borderColor: "var(--border)", background: "#fefcf8" }}>
+          <div className="col-span-6 p-3 border-r" style={{ borderColor: "var(--border)", background: "#fefcf8" }}>
             <div className="flex items-center gap-1.5 mb-2">
               <MapPin className="w-3 h-3" style={{ color: "var(--accent)" }} />
               <span className="text-[10px] font-semibold uppercase tracking-wider text-stone-600">{t("land.mock.mapTitle")}</span>
             </div>
-            {/* Stylized Indonesia archipelago SVG */}
-            <div className="relative" style={{ aspectRatio: "16/9" }}>
-              <svg viewBox="0 0 100 60" preserveAspectRatio="none" className="absolute inset-0 w-full h-full">
-                {/* Dot grid background */}
+            {/* Real Indonesia archipelago */}
+            <div className="relative" style={{ aspectRatio: "950/280" }}>
+              <svg viewBox="40 120 940 280" preserveAspectRatio="xMidYMid meet" className="absolute inset-0 w-full h-full">
                 <defs>
-                  <pattern id="dotgrid" width="4" height="4" patternUnits="userSpaceOnUse">
-                    <circle cx="1" cy="1" r="0.35" fill="#e5dec9" />
+                  <pattern id="dotgrid" width="20" height="20" patternUnits="userSpaceOnUse">
+                    <circle cx="2" cy="2" r="1.2" fill="#e5dec9" />
                   </pattern>
                 </defs>
-                <rect width="100" height="60" fill="url(#dotgrid)" />
-                {/* Rough archipelago shapes */}
-                <g fill="#fed7aa" opacity="0.55" stroke="#fdba74" strokeWidth="0.15">
-                  <path d="M15,50 Q20,45 26,48 Q32,52 30,60 Q22,64 15,58 Z" />
-                  <path d="M35,63 Q45,60 55,64 Q60,66 58,70 Q45,74 35,70 Z" transform="translate(0,-4)" />
-                  <path d="M60,62 Q68,60 74,64 Q76,68 70,70 Q62,68 60,66 Z" transform="translate(0,-2)" />
-                  <path d="M64,50 Q70,48 75,52 Q76,58 70,58 Q64,56 64,52 Z" />
-                  <path d="M80,55 Q88,53 92,58 Q90,64 82,62 Z" />
+                <rect x="40" y="120" width="940" height="280" fill="url(#dotgrid)" />
+                {/* Indonesian archipelago - simplified but recognizable */}
+                <g fill="#FED7AA" stroke="#FB923C" strokeWidth="2" strokeLinejoin="round">
+                  {/* Sumatra (NW to SE elongated island) */}
+                  <path d="M60,130 Q90,120 120,140 L155,180 L190,230 L225,280 L235,315 L215,325 L180,305 L140,255 L105,195 L75,155 Z" />
+                  {/* Kalimantan (Borneo - large rounded) */}
+                  <path d="M395,150 Q455,130 520,145 L575,180 L590,235 L570,275 L530,290 L475,285 L420,265 L390,225 L385,180 Z" />
+                  {/* Sulawesi (K-shape body) */}
+                  <path d="M660,150 L680,145 L695,175 L730,150 L745,175 L720,210 L710,240 L695,260 L675,255 L680,215 L660,190 Z" />
+                  {/* Sulawesi (SE limb) */}
+                  <path d="M710,240 L740,260 L750,290 L735,300 L715,285 Z" />
+                  {/* Papua (large jagged east) */}
+                  <path d="M785,205 Q820,190 860,195 L905,205 L945,225 L965,260 L960,300 L925,320 L880,315 L835,300 L800,275 L780,250 Z" />
+                  {/* Java (horizontal strip) */}
+                  <path d="M295,335 L360,330 L430,335 L490,345 L540,355 L560,370 L530,378 L465,375 L390,368 L330,358 L295,350 Z" />
+                  {/* Bali + Lombok + Sumbawa */}
+                  <path d="M580,360 L605,357 L615,368 L595,372 Z" />
+                  <path d="M625,362 L648,360 L655,370 L632,374 Z" />
+                  <path d="M665,363 L695,362 L705,373 L672,376 Z" />
+                  {/* Timor tip */}
+                  <path d="M720,370 L755,368 L768,378 L732,382 Z" />
+                  {/* Small islands (Bangka/Belitung) */}
+                  <circle cx="280" cy="245" r="8" />
+                  <circle cx="320" cy="255" r="6" />
+                  {/* Maluku */}
+                  <circle cx="770" cy="230" r="7" />
+                  <circle cx="755" cy="265" r="5" />
                 </g>
               </svg>
-              {/* Pins */}
-              {pins.map((p, i) => (
-                <div
-                  key={i}
-                  className="absolute"
-                  style={{ left: `${p.x}%`, top: `${p.y}%`, transform: "translate(-50%,-50%)" }}
-                >
+              {/* Pins positioned relative to visible viewBox (40..980, 120..400) */}
+              {pins.map((p, i) => {
+                const vbX = 40, vbY = 120, vbW = 940, vbH = 280;
+                const left = ((p.x - vbX) / vbW) * 100;
+                const top = ((p.y - vbY) / vbH) * 100;
+                return (
                   <div
-                    className="rounded-full ring-2 ring-white"
-                    style={{
-                      width: p.big ? 10 : 6,
-                      height: p.big ? 10 : 6,
-                      background: p.big ? "var(--accent)" : "#a8a29e",
-                      boxShadow: p.big ? "0 0 0 3px rgba(194,65,12,0.18)" : "none",
-                    }}
-                  />
-                  {p.label && (
-                    <div className="absolute left-3 top-0 text-[8px] font-semibold whitespace-nowrap"
-                         style={{ color: "#1c1917", background: "#fff", padding: "1px 4px", borderRadius: 3, border: "1px solid var(--border)" }}>
-                      {p.label}
-                    </div>
-                  )}
-                </div>
-              ))}
+                    key={i}
+                    className="absolute"
+                    style={{ left: `${left}%`, top: `${top}%`, transform: "translate(-50%,-50%)", zIndex: p.big ? 3 : 2 }}
+                  >
+                    <div
+                      className="rounded-full ring-2 ring-white"
+                      style={{
+                        width: p.big ? 14 : 7,
+                        height: p.big ? 14 : 7,
+                        background: p.big ? "var(--accent)" : "#78716c",
+                        boxShadow: p.big ? "0 0 0 4px rgba(194,65,12,0.25)" : "none",
+                      }}
+                    />
+                    {p.label && (
+                      <div className="absolute left-4 -top-1 text-[9px] font-bold whitespace-nowrap shadow-sm"
+                           style={{ color: "#1c1917", background: "#fff", padding: "2px 5px", borderRadius: 4, border: "1px solid var(--border)" }}>
+                        {p.label}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
             {/* Legend */}
             <div className="flex items-center gap-3 mt-2 text-[9px] text-stone-500">
@@ -118,14 +141,14 @@ function BrowserMock({ t }) {
                 {t("land.mock.mapLegendHi")}
               </div>
               <div className="flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full" style={{ background: "#a8a29e" }} />
+                <span className="w-2 h-2 rounded-full" style={{ background: "#78716c" }} />
                 {t("land.mock.mapLegendLo")}
               </div>
             </div>
           </div>
 
           {/* Table side */}
-          <div className="col-span-7 p-3">
+          <div className="col-span-6 p-3">
             <div className="flex items-center gap-1.5 mb-2">
               <Users className="w-3 h-3" style={{ color: "var(--accent)" }} />
               <span className="text-[10px] font-semibold uppercase tracking-wider text-stone-600">{t("land.mock.tableTitle")}</span>
@@ -438,7 +461,7 @@ export default function Landing() {
         />
 
         <div className="relative max-w-[1200px] mx-auto px-6 md:px-20 py-14 md:py-16">
-          <div className="grid lg:grid-cols-[55%_45%] gap-10 lg:gap-12 items-center">
+          <div className="grid lg:grid-cols-[48%_52%] gap-10 lg:gap-8 items-center">
             {/* Left: text */}
             <div>
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest"
@@ -448,17 +471,28 @@ export default function Landing() {
               </div>
               <h1
                 className="font-display font-extrabold text-stone-900 mt-5"
-                style={{ fontSize: "clamp(32px, 5vw, 56px)", lineHeight: 1.1 }}
+                style={{ fontSize: "clamp(30px, 4.4vw, 52px)", lineHeight: 1.08 }}
               >
-                {t("land.hero.h1a")}
-                <br />
-                <span style={{ color: "var(--accent)" }}>{t("land.hero.h1b")}</span>
+                {t("login.hero").split(" ").map((w, i, arr) => {
+                  // Emphasize "buta" / "blind" word in orange
+                  const isKey = /^(buta|blind)/i.test(w);
+                  return (
+                    <span key={i} style={isKey ? { color: "var(--accent)" } : undefined}>
+                      {w}
+                      {i < arr.length - 1 ? " " : ""}
+                    </span>
+                  );
+                })}
               </h1>
-              <p className="text-stone-700 mt-5 text-base md:text-lg leading-relaxed max-w-xl">
-                {t("land.hero.sub")}
+              <p className="text-stone-700 mt-5 text-sm md:text-base leading-relaxed max-w-xl">
+                {t("login.subhero")}
+              </p>
+              <p className="text-stone-800 mt-3 text-sm md:text-base leading-relaxed max-w-xl">
+                <strong className="text-orange-900">{t("login.solutionLead")}</strong>{" "}
+                {t("login.solutionBody")}
               </p>
 
-              <div className="mt-7 flex flex-wrap items-center gap-3">
+              <div className="mt-6 flex flex-wrap items-center gap-3">
                 <button
                   onClick={primaryCta}
                   data-testid="landing-hero-cta-primary"
@@ -500,7 +534,7 @@ export default function Landing() {
               </div>
 
               {/* Chips */}
-              <ul className="mt-6 flex flex-wrap gap-x-4 gap-y-2 text-xs text-stone-700">
+              <ul className="mt-5 flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-stone-700">
                 {["land.chip.1", "land.chip.2", "land.chip.3", "land.chip.4", "land.chip.5"].map((k) => (
                   <li key={k} className="inline-flex items-center gap-1.5">
                     <Check className="w-3.5 h-3.5" style={{ color: "var(--wa)" }} />
