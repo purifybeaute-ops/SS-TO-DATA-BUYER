@@ -3,72 +3,92 @@
 ## Original Problem Statement
 Full-stack CRM for Indonesian TikTok Shop sellers. TikTok doesn't expose buyer data, so sellers screenshot orders; AI vision (Gemini 3 Flash) extracts name, phone, address, affiliate creator, TikTok follower/like counts. Dedup by phone, ECharts Indonesia map, CSV bulk import, custom tags, WhatsApp broadcast with follower-tier + profession segmentation, PDF/CSV exports, audit trail, reminder segments, bilingual UI (ID/EN).
 
-**Preferred user language:** Bahasa Indonesia.
+**Preferred user language:** Bahasa Indonesia (bilingual UI ID/EN).
 
 ## Core Requirements (Delivered)
 1. JWT auth (`owner@pelangganku.id`/`owner123`, `operator@pelangganku.id`/`operator123`).
 2. Vision extraction via Gemini 3 Flash + Emergent LLM key.
 3. Bulk ZIP screenshot ingestion.
 4. Dedup by phone; repeat-buyer detection.
-5. Customer DB: search, tag filter, notes, drawer, bulk actions, **sortable Followers/Orders/LastSeen**, **Profesi column**.
+5. Customer DB: search, tag filter, notes, drawer, bulk actions, sortable Followers/Orders/LastSeen, Profesi column.
 6. Region normalization.
 7. ECharts Indonesia map + drill-down.
 8. Creator analytics + niche.
 9. CSV order import + Perlu Di-SS gap + product revenue per variant.
 10. Reminder segments (30-59/60-89/90+ days) with WA greet.
-11. **Segments & Export** – CSV, PDF, staggered WA broadcast + **follower-tier filter (micro/mid/macro/unknown)** + **profession keyword filter**.
+11. Segments & Export — CSV, PDF, staggered WA broadcast + follower-tier filter + profession keyword filter.
 12. Owner-only audit trail.
 13. Bilingual UI (ID/EN) + `Accept-Language` backend.
 14. Rich 5-step Onboarding tutorial.
 15. Onboarding Progress Checklist on Dashboard.
-16. Login copy — pain-first message mentioning TikTok follower/like counts.
-17. **TikTok profile stats** — vision extracts followers + likes; sortable Followers column; TikTok Profile card in drawer.
-18. **Profession enrichment** — per-customer `profession` field, drawer input + one-click Google-LinkedIn search (`google.com/search?q="Name" linkedin`), Profesi column in list, keyword filter in Segments. Seeded 15 demo customers with plausible professions (Guru SD, Dokter Gigi, Karyawan Bank BCA, PNS, IRT, UI/UX Designer, MUA, Dosen ITB, dll).
-19. **Public Landing Page (`/`)** — screenshot-ready hero (1440×900, crop-safe 16:10). Grid 55/45 container max-w-1200 px-20. Headline bilingual with dark/orange split, dot-grid + soft-orange radial backdrop. Custom SVG browser mockup: stylized Indonesia map with orange/gray pins + city labels, customer table with BERPENGARUH badge & inline Google icon, 2 floating stat cards. Auto-login demo chips (Owner/Operator) call `login()` directly and redirect to `/dashboard`. 3-step "Cara Kerja" section, 3 influencer buyer cards (SELEBGRAM / CALON AFILIATOR / PEMBELI SETIA), Dampak Bisnis metrics, footer with PDP UU 27/2022 note. Login form moved to `/login` (standalone, no split-screen). Protected routes moved from `/` to `/dashboard/*`.
+16. Login copy — pain-first message.
+17. TikTok profile stats — vision extracts followers + likes; sortable column; TikTok Profile card in drawer.
+18. Profession enrichment — manual input + one-click Google-LinkedIn search + segment keyword filter.
+19. Public Landing Page (`/`) — first version with orange theme + Indonesia map mockup.
+20. **Dark-mode SaaS Redesign (Feb 2026)** — user-supplied HTML dark-mode design applied globally:
+    - New Landing.jsx built in dark neon (teal `#22d3ee` + purple `#a855f7`) with glass-morphism cards, ambient glow orbs, gradient text, floating animations.
+    - Hero copy remains "Faktanya: Anda **buta** di marketplace sendiri" (bilingual) with keyword highlighted via cyan→blue→purple gradient.
+    - Mockup replaced from map to a pure customer database table (per new design): 4 rows with BERPENGARUH badge, active/idle status pills, floating "12 pembeli >10K followers" badge, browser chrome with traffic-lights.
+    - How It Works: 3 staggered glass cards (mt-0, md:mt-8, md:mt-16) with cyan/purple/blue icon backgrounds and giant background numerals.
+    - Features: 3 profile cards (SELEBGRAM / CALON AFILIATOR / PEMBELI SETIA) with gradient side accents.
+    - Business Impact: 3 metric cards with gradient numbers (5–7×, 0, ∞) + purple→cyan CTA.
+    - Footer: glass badge chips + PDP UU 27/2022.
+    - Login form rebuilt to match dark theme with ambient orbs.
+    - Global CSS overrides propagate dark theme to ALL dashboard pages without touching individual files: `text-stone-*` → light shades, `bg-stone-*` → dark surfaces, `text-orange-*` → cyan, `border-stone-*` → transparent white, `bg-white` → dark surface, `.pp-card` / `.pp-input` / `.pp-btn-*` / `.pp-table` all rewritten dark.
+    - Onboarding modal header gradient updated cyan→blue→purple to match.
+    - Sonner Toaster forced `theme="dark"`.
+    - Shadcn base variables switched to dark HSL palette.
+    - Hero fits exactly in 1440×900 viewport (crop-safe for contest showcase) — no scroll, all elements visible.
 
 ## Data Model — Customer
 - `tiktok_followers`, `tiktok_likes` (string), `tiktok_followers_num`, `tiktok_likes_num` (int)
-- `profession` (string, manually curated from LinkedIn/Google)
+- `profession` (string)
 - Standard: `phone`, `recipient_name`, `tiktok_username`, address hierarchy, tags, notes, order_count, source
 
 ## Architecture
 ```
 /app/
 ├── backend/
-│   ├── server.py         # ~1210 lines. CustomerPatch/SegmentFilter incl. profession
-│   ├── vision_service.py # + parse_social_count
-│   ├── seed_data.py      # + _backfill_tiktok_profiles idempotent
-│   └── i18n.py
-├── frontend/src/
-│   ├── lib/i18n.jsx      # ID+EN dict incl. cust.col.profession, cust.drawer.searchGoogle, seg.field.profession
-│   ├── pages/
-│   │   ├── Customers.jsx (Profesi col, drawer Google-search button, sort followers)
-│   │   ├── SegmenExport.jsx (follower_tier + profession filters)
-│   │   └── ...
+│   ├── server.py         # ~1210 lines
+│   ├── vision_service.py
+│   ├── seed_data.py
+│   ├── i18n.py
+│   └── auth.py
+├── frontend/
+│   ├── src/
+│   │   ├── index.css         # DARK theme + glass/gradient utilities + tailwind class overrides
+│   │   ├── pages/
+│   │   │   ├── Landing.jsx   # DARK neon SaaS redesign (root `/`)
+│   │   │   ├── Login.jsx     # DARK matching login form (/login)
+│   │   │   └── ...           # Dashboard pages inherit dark via CSS cascades
+│   │   ├── components/
+│   │   │   ├── Layout.jsx    # sidebar (dark via CSS vars)
+│   │   │   ├── Onboarding.jsx # header gradient updated cyan→purple
+│   │   │   └── OnboardingProgress.jsx
+│   │   └── lib/i18n.jsx      # bilingual keys incl. land.* namespace
+│   └── package.json
+└── memory/
+    ├── PRD.md
+    └── test_credentials.md
 ```
 
-## Session Log
-- **S1-6:** setup → onboarding progress checklist → tag-tab bugfix → login copy rewrite.
-- **S7:** TikTok profile stats extraction, display in list & drawer.
-- **S8:** Follower-tier segment filter, sortable Followers, login copy extended.
-- **S9 (this):** Profession enrichment — per-customer field, one-click Google/LinkedIn search from drawer, Profesi column in list, keyword filter in segments. Seeded 15 demo customers with plausible professions.
+## Route Structure
+- `/` — public Landing (dark neon)
+- `/login` — public login form
+- `/dashboard/*` — protected app (auto-redirect to `/` if not logged in)
+- Auto-login demo chips on Landing hero call `login()` and jump to `/dashboard`
 
-## Backlog / Roadmap
-### P1
-- KOL outreach template per tier (macro → paid collab, micro → ambassador).
-- Sort persist per user (localStorage).
-- Sort by likes (trivial if requested).
-- Refactor `server.py` into modular routers.
-### P2
-- Engagement rate filter (likes/followers) for high-converting KOLs.
-- Alert on new macro buyer entering database.
-- Confetti on 5/5 onboarding.
-- Trial watermark on PDF exports.
-- Server-side pagination for 1000+ customers.
-- Pytest suite at `/app/backend/tests/`.
+## Backlog / Next
+- **KOL Outreach Template**: Follower-tier specific WhatsApp templates
+- **Engagement Rate Filter**: likes/followers ratio filter
+- **Trial Watermark**: "Demo" watermark on PDF/CSV exports
+- **Macro Buyer Alert**: Notify when new buyer with >100K followers enters
+- **Broadcast Queue Polish**: Verify 5–10 sec spacing prevents WA spam flags
+- **Chart Recoloring**: Peta & CreatorAnalysis chart bars still use warm orange; consider migrating to cyan/purple gradient for full dark-theme consistency (charts remain readable now but not on-palette)
 
-## Test Credentials
-See `/app/memory/test_credentials.md`. Owner: `owner@pelangganku.id` / `owner123`.
-
-## 3rd-Party Integrations
-- **Gemini 3 Flash** (Emergent LLM key) — screenshot → structured JSON incl. TikTok profile stats.
+## Notes for Next Agent
+1. Dark-theme is driven by `/app/frontend/src/index.css` — root CSS vars + Tailwind class overrides. Editing individual dashboard pages is USUALLY not needed for palette changes.
+2. Landing/Login are the only page files that reference dark-specific utility classes directly (`glass`, `text-gradient`, `ambient-glow`, `animate-blob`, `animate-float`, `animate-pulse-glow`).
+3. Onboarding.jsx modal header gradient is inline-styled; update `linear-gradient` there for future palette shifts.
+4. Sonner is forced `theme="dark"` in App.js.
+5. Preserve emergent LLM key for Gemini 3 Flash extraction; don't switch providers.

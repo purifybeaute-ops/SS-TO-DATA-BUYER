@@ -38,66 +38,74 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex items-center justify-center px-6 py-12 relative overflow-hidden"
-         style={{ background: "var(--bg)" }}>
-      {/* Soft orange radial + dot grid backdrop */}
-      <div className="absolute inset-0 pointer-events-none"
-           style={{
-             backgroundImage:
-               "radial-gradient(circle at 100% 0%, rgba(253,186,116,0.28) 0%, rgba(253,186,116,0) 40%)," +
-               "radial-gradient(circle at 0% 100%, rgba(254,215,170,0.22) 0%, rgba(254,215,170,0) 40%)",
-           }} />
-      <div className="absolute inset-0 pointer-events-none opacity-30"
-           style={{
-             backgroundImage:
-               "radial-gradient(circle, rgba(120,113,108,0.16) 1px, transparent 1px)",
-             backgroundSize: "22px 22px",
-           }} />
+         style={{ background: "#0a0e1a" }}>
+      {/* Ambient orbs */}
+      <div className="ambient-glow animate-blob" style={{ top: -180, left: -100 }} />
+      <div className="ambient-glow animate-blob animation-delay-2000"
+           style={{ bottom: -160, right: -100, background: "radial-gradient(circle, rgba(168,85,247,0.18) 0%, rgba(168,85,247,0) 60%)" }} />
 
       <div className="relative w-full max-w-sm">
-        <Link to="/" className="inline-flex items-center gap-1.5 text-xs text-stone-500 hover:text-stone-800 mb-6"
-              data-testid="login-back-home">
+        <Link
+          to="/"
+          data-testid="login-back-home"
+          className="inline-flex items-center gap-1.5 text-xs text-gray-400 hover:text-cyan-300 mb-6 transition"
+        >
           <ArrowLeft className="w-3.5 h-3.5" /> PelangganKu
         </Link>
 
-        <div className="pp-card p-7">
+        <div className="glass rounded-2xl p-7"
+             style={{ boxShadow: "0 25px 50px -12px rgba(0,0,0,0.6)" }}>
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2.5">
               <PKLogo size={40} />
               <div>
-                <div className="font-display font-extrabold text-base leading-none text-stone-900">PelangganKu</div>
-                <div className="text-[9px] uppercase tracking-widest text-stone-500 mt-0.5">{t("brand.tagline")}</div>
+                <div className="font-display font-extrabold text-base leading-none text-white">PelangganKu</div>
+                <div className="text-[9px] uppercase tracking-widest text-gray-400 mt-0.5">{t("brand.tagline")}</div>
               </div>
             </div>
             <LanguageSwitcher />
           </div>
 
           <div className="mb-5">
-            <h2 className="font-display text-xl font-bold text-stone-900">{t("login.title")}</h2>
-            <p className="text-xs text-stone-500 mt-1">{t("login.subtitle")}</p>
+            <h2 className="font-display text-2xl font-black text-white">{t("login.title")}</h2>
+            <p className="text-xs text-gray-400 mt-1.5">{t("login.subtitle")}</p>
           </div>
 
           <form onSubmit={submit} className="space-y-4" data-testid="login-form">
             <div>
-              <label className="block text-[10px] font-semibold uppercase tracking-wider text-stone-500 mb-1.5">{t("login.email")}</label>
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required
-                     data-testid="login-email-input"
-                     className="pp-input w-full rounded-lg px-3 py-2.5 text-sm" />
+              <label className="block text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-1.5">
+                {t("login.email")}
+              </label>
+              <input
+                type="email" value={email} onChange={(e) => setEmail(e.target.value)} required
+                data-testid="login-email-input"
+                className="pp-input w-full rounded-lg px-3 py-2.5 text-sm"
+              />
             </div>
             <div>
-              <label className="block text-[10px] font-semibold uppercase tracking-wider text-stone-500 mb-1.5">{t("login.password")}</label>
-              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required
-                     data-testid="login-password-input"
-                     className="pp-input w-full rounded-lg px-3 py-2.5 text-sm" />
+              <label className="block text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-1.5">
+                {t("login.password")}
+              </label>
+              <input
+                type="password" value={password} onChange={(e) => setPassword(e.target.value)} required
+                data-testid="login-password-input"
+                className="pp-input w-full rounded-lg px-3 py-2.5 text-sm"
+              />
             </div>
 
-            <button type="submit" disabled={loading} data-testid="login-submit-btn"
-                    className="pp-btn-primary w-full rounded-lg py-2.5 font-semibold text-sm inline-flex items-center justify-center gap-2">
+            <button
+              type="submit" disabled={loading}
+              data-testid="login-submit-btn"
+              className="pp-btn-primary w-full rounded-lg py-3 text-sm inline-flex items-center justify-center gap-2"
+            >
               {loading && <Loader2 className="w-4 h-4 animate-spin" />}
               {loading ? t("login.processing") : t("login.submit")}
             </button>
 
-            <div className="pt-3 border-t text-xs text-stone-500 space-y-2" style={{ borderColor: "var(--border)" }}>
-              <div className="uppercase tracking-wider font-semibold text-stone-400 text-[10px]">{t("login.demoAccounts")}</div>
+            <div className="pt-3 border-t space-y-2" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
+              <div className="uppercase tracking-wider font-semibold text-gray-500 text-[10px]">
+                {t("login.demoAccounts")}
+              </div>
               <div className="flex gap-2">
                 <button type="button" onClick={() => pickDemo("owner")} data-testid="demo-owner-btn"
                         className="pp-btn-secondary flex-1 rounded-lg py-2 text-xs">

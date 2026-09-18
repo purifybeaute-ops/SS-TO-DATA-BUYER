@@ -38,7 +38,7 @@ function App() {
       <LanguageProvider>
         <AuthProvider>
           <BrowserRouter>
-            <Toaster richColors position="top-right" />
+            <Toaster richColors position="top-right" theme="dark" />
             <Routes>
               <Route path="/" element={<Landing />} />
               <Route path="/login" element={<Login />} />

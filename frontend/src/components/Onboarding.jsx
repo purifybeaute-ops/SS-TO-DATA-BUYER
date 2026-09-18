@@ -34,7 +34,7 @@ export default function Onboarding({ onClose }) {
         {/* Header bar */}
         <div
           className="relative px-5 py-4 flex items-center justify-between"
-          style={{ background: "linear-gradient(140deg, #C2410C 0%, #9A3412 60%, #7C2D12 100%)" }}
+          style={{ background: "linear-gradient(140deg, #22d3ee 0%, #3b82f6 55%, #a855f7 100%)" }}
         >
           <div className="flex items-center gap-2 text-white/90 text-xs">
             <PKLogo size={22} /> {t("ob.welcome")}
