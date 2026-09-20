@@ -1,0 +1,125 @@
+name: Bangun installer Windows
+
+# Tiap kali kode didorong ke GitHub, Windows di GitHub yang membangun
+# installernya — jadi Anda tidak perlu menyiapkan apa pun di komputer sendiri.
+# Hasilnya bisa diunduh dari tab "Actions", atau otomatis jadi Release
+# kalau Anda memberi tag versi (mis. v1.0.0).
+
+on:
+  push:
+    branches: [main, master]
+    tags: ["v*"]
+  workflow_dispatch:          # bisa juga dijalankan manual lewat tombol
+
+permissions:
+  contents: write             # diperlukan untuk menerbitkan Release
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Ambil kode
+        uses: actions/checkout@v4
+
+      - name: Tentukan nomor versi
+        id: versi
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            echo "nilai=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
+          else
+            echo "nilai=0.1.${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+          fi
+
+      # ---------------- tampilan depan ----------------
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: yarn
+          cache-dependency-path: frontend/yarn.lock
+
+      - name: Pasang kebutuhan tampilan depan
+        working-directory: frontend
+        run: yarn install --frozen-lockfile --network-timeout 600000
+
+      - name: Unduh peta wilayah Indonesia
+        # Dibungkus ke dalam aplikasi supaya peta tetap tampil saat offline.
+        shell: pwsh
+        working-directory: frontend
+        run: |
+          New-Item -ItemType Directory -Force -Path public/data | Out-Null
+          $sumber = @(
+            "https://cdn.jsdelivr.net/gh/superpikar/indonesia-geojson@master/indonesia-prov.geojson",
+            "https://raw.githubusercontent.com/superpikar/indonesia-geojson/master/indonesia-prov.geojson"
+          )
+          $berhasil = $false
+          foreach ($u in $sumber) {
+            try {
+              Invoke-WebRequest -Uri $u -OutFile public/data/indonesia-prov.geojson -TimeoutSec 90
+              $berhasil = $true; break
+            } catch { Write-Host "Gagal dari $u, coba sumber berikutnya" }
+          }
+          if (-not $berhasil) {
+            Write-Warning "Peta wilayah gagal diunduh - aplikasi tetap dibangun, peta akan mengambil dari internet saat dipakai"
+          } else {
+            $kb = (Get-Item public/data/indonesia-prov.geojson).Length / 1KB
+            Write-Host ("Peta wilayah tersimpan: {0:N0} KB" -f $kb)
+          }
+
+      - name: Bangun tampilan depan
+        working-directory: frontend
+        env:
+          GENERATE_SOURCEMAP: "false"
+          DISABLE_ESLINT_PLUGIN: "true"
+          CI: "false"
+        run: yarn build
+
+      # ---------------- aplikasi ----------------
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Pasang kebutuhan aplikasi
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r installer/requirements-app.txt
+
+      - name: Bungkus jadi aplikasi Windows
+        run: pyinstaller --noconfirm --clean installer/pelangganku.spec
+
+      - name: Pastikan hasil bungkusan bisa dijalankan
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "dist/PelangganKu/PelangganKu.exe")) {
+            throw "PelangganKu.exe tidak terbentuk"
+          }
+          $ukuran = (Get-ChildItem dist/PelangganKu -Recurse |
+                     Measure-Object -Property Length -Sum).Sum / 1MB
+          Write-Host ("Ukuran aplikasi: {0:N0} MB" -f $ukuran)
+
+      # ---------------- installer ----------------
+      - name: Bangun installer
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) {
+            choco install innosetup --no-progress -y
+          }
+          & $iscc "/DVersiApp=${{ steps.versi.outputs.nilai }}" installer/installer.iss
+
+      - name: Unggah hasil
+        uses: actions/upload-artifact@v4
+        with:
+          name: PelangganKu-Setup-${{ steps.versi.outputs.nilai }}
+          path: dist_installer/*.exe
+          retention-days: 30
+
+      - name: Terbitkan sebagai Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist_installer/*.exe
+          generate_release_notes: true
