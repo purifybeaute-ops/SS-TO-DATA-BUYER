@@ -1,0 +1,35 @@
+# Kebutuhan aplikasi terinstal PelangganKu.
+# Sengaja dipisah dari requirements.txt milik versi web: di sini tidak ada
+# MongoDB, tidak ada pustaka Emergent, dan tidak ada alat pengembangan.
+
+# --- inti ---
+fastapi==0.115.6
+uvicorn==0.34.0
+pydantic>=2.9
+email-validator>=2.2.0
+python-dotenv>=1.0.1
+python-multipart>=0.0.9
+httpx>=0.27
+
+# --- keamanan ---
+pyjwt>=2.10.1
+bcrypt==4.2.1
+passlib>=1.7.4
+
+# --- OCR lokal (gratis, jalan di komputer pengguna, tanpa internet) ---
+rapidocr-onnxruntime==1.4.4
+onnxruntime==1.20.1
+opencv-python-headless>=4.10
+Pillow>=10.4
+numpy>=1.26,<3
+
+# --- olah data & ekspor ---
+pandas>=2.2.0
+openpyxl>=3.1.5
+
+# --- jendela aplikasi ---
+pywebview==5.4
+pythonnet==3.0.5 ; sys_platform == "win32"
+
+# --- pembungkusan ---
+pyinstaller==6.11.1

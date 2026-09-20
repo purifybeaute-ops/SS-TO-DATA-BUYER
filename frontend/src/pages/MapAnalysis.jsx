@@ -5,7 +5,12 @@ import * as echarts from "echarts";
 import { MapPin, Layers, AlertTriangle } from "lucide-react";
 import { useT } from "@/lib/i18n.jsx";
 
+// Peta wilayah Indonesia.
+// Berkas lokal didahulukan supaya aplikasi terinstal tetap menampilkan peta
+// saat komputer sedang offline. Dua alamat internet di bawahnya hanya
+// cadangan kalau berkas lokal belum ikut terbungkus.
 const GEO_URLS = [
+  "/data/indonesia-prov.geojson",
   "https://cdn.jsdelivr.net/gh/superpikar/indonesia-geojson@master/indonesia-prov.geojson",
   "https://raw.githubusercontent.com/superpikar/indonesia-geojson/master/indonesia-prov.geojson",
 ];

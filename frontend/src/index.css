@@ -2,7 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url("https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap");
+/* Font dibundel ke dalam aplikasi, bukan diambil dari server Google.
+   Tanpa ini tampilan berubah saat komputer sedang offline, dan tiap
+   aplikasi dibuka akan ada permintaan keluar ke Google. */
+@import "@fontsource-variable/sora";
+@import "@fontsource-variable/plus-jakarta-sans";
+@import "@fontsource-variable/jetbrains-mono";
 
 :root {
   /* Dark-mode SaaS theme */

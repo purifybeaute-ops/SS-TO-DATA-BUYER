@@ -1,12 +1,44 @@
 """JWT auth utilities for PelangganKu."""
 import os
+import secrets
 import bcrypt
 import jwt
 from datetime import datetime, timezone, timedelta
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
-JWT_SECRET = os.environ.get("JWT_SECRET", "dev-secret")
+def _rahasia_jwt() -> str:
+    """Kunci penanda tangan sesi.
+
+    Nilai bawaan "dev-secret" tidak aman untuk produk yang dibagikan: siapa
+    pun yang tahu nilainya bisa membuat token palsu. Jadi kalau JWT_SECRET
+    tidak diisi, aplikasi membuat kunci acak 64 karakter sekali saat pertama
+    dijalankan, lalu menyimpannya di folder data pengguna. Setiap pemasangan
+    punya kunci sendiri, dan kunci itu tidak pernah ikut terbawa di kode.
+    """
+    dari_env = os.environ.get("JWT_SECRET", "").strip()
+    if dari_env and dari_env != "dev-secret":
+        return dari_env
+    try:
+        from appdirs_local import folder_data
+        berkas = folder_data() / "kunci_sesi.txt"
+        if berkas.exists():
+            nilai = berkas.read_text(encoding="utf-8").strip()
+            if len(nilai) >= 32:
+                return nilai
+        nilai = secrets.token_urlsafe(48)
+        berkas.write_text(nilai, encoding="utf-8")
+        try:
+            os.chmod(berkas, 0o600)
+        except OSError:
+            pass
+        return nilai
+    except Exception:
+        # jangan sampai aplikasi gagal jalan hanya karena berkas tak bisa ditulis
+        return secrets.token_urlsafe(48)
+
+
+JWT_SECRET = _rahasia_jwt()
 JWT_ALGORITHM = os.environ.get("JWT_ALGORITHM", "HS256")
 JWT_EXPIRES_HOURS = int(os.environ.get("JWT_EXPIRES_HOURS", "168"))
 

@@ -1,6 +1,9 @@
 import axios from "axios";
 
-const BACKEND = process.env.REACT_APP_BACKEND_URL;
+// Pada aplikasi terinstal, tampilan depan disajikan oleh backend itu sendiri,
+// jadi alamatnya cukup relatif terhadap halaman ini. REACT_APP_BACKEND_URL
+// hanya dipakai saat pengembangan atau kalau backend dijalankan terpisah.
+const BACKEND = process.env.REACT_APP_BACKEND_URL || "";
 export const API = `${BACKEND}/api`;
 
 export const api = axios.create({ baseURL: API });

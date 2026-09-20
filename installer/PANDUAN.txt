@@ -1,0 +1,157 @@
+================================================================
+  PELANGGANKU
+  Database pelanggan TikTok Shop — berjalan di komputer Anda
+================================================================
+
+APA INI
+  Aplikasi untuk mengubah screenshot pesanan TikTok Shop menjadi
+  database pelanggan yang rapi: bisa dicari, dikelompokkan,
+  dianalisa, dan diekspor.
+
+  Semua pemrosesan terjadi di komputer ini. Data pembeli Anda
+  tidak pernah dikirim ke server mana pun, dan aplikasi tetap
+  berfungsi tanpa internet.
+
+
+================================================================
+ A. MASUK PERTAMA KALI
+================================================================
+
+  Dobel-klik ikon PelangganKu, lalu masuk dengan:
+
+      Email    : owner@pelangganku.id
+      Kata sandi: owner123
+
+  GANTI KATA SANDI INI SEGERA setelah masuk, lewat menu
+  Pengaturan. Kata sandi bawaan sama untuk semua pemasangan,
+  jadi jangan dibiarkan.
+
+
+================================================================
+ B. CARA SCREENSHOT YANG BENAR
+================================================================
+
+  Di aplikasi TikTok Seller Center di HP, buka pesanan yang
+  BELUM diproses, lalu:
+
+    1. Klik SEMUA tanda mata sampai data terbuka
+       (nama, nomor HP, dan alamat)
+    2. Klik "Kreator afiliasi" kalau ingin data afiliasinya ikut
+    3. Baru screenshot
+
+  Kalau tanda mata belum diklik, datanya masih tersamar dan
+  aplikasi akan menandainya supaya tidak mengotori database.
+
+
+================================================================
+ C. PEMAKAIAN HARIAN
+================================================================
+
+  1. Buka menu Upload
+  2. Pilih screenshot — bisa banyak sekaligus, atau satu file ZIP
+  3. Periksa hasil bacaannya, perbaiki kalau ada yang meleset
+  4. Simpan
+
+  Setelah tersimpan, pembeli masuk ke menu Pelanggan dan langsung
+  terhitung di Dashboard, Peta Wilayah, dan Analisa Kreator.
+
+
+================================================================
+ D. TENTANG PEMBACAAN SCREENSHOT
+================================================================
+
+  Aplikasi membaca screenshot dengan OCR yang berjalan di
+  komputer ini. Gratis, tanpa batas, tanpa internet.
+
+  Kalau suatu saat ada screenshot yang sulit terbaca — buram,
+  tampilan TikTok berubah, atau ukuran layar tidak biasa —
+  aplikasi bisa dibantu AI. Ini pilihan, bukan keharusan.
+
+  Cara mengaktifkannya:
+    1. Ambil kunci API Gemini di https://aistudio.google.com
+    2. Buka folder data (lihat bagian F), edit pengaturan.env
+    3. Isi baris:  GEMINI_API_KEY=kunci_anda
+    4. Tutup dan buka lagi aplikasinya
+
+  Bantuan AI hanya dipanggil saat hasil OCR lokal meragukan,
+  jadi biayanya sangat kecil. Screenshot yang datanya masih
+  tersamar tidak akan dikirim ke AI — percuma, dan buang biaya.
+
+
+================================================================
+ E. PENGGUNA DAN PERAN
+================================================================
+
+  Owner    : akses penuh, bisa menambah pengguna, melihat log
+  Operator : bisa mengunggah dan mengelola pelanggan, tidak bisa
+             menambah pengguna atau melihat log audit
+
+  Cocok kalau Anda punya admin yang membantu input data.
+
+
+================================================================
+ F. DI MANA DATA SAYA DISIMPAN
+================================================================
+
+  Semua data ada di folder ini:
+
+      C:\Users\<nama-anda>\AppData\Local\PelangganKu
+
+  Isinya:
+      data\           basis data pelanggan
+      pengaturan.env  pengaturan Anda
+      kunci_sesi.txt  kunci keamanan sesi (jangan dibagikan)
+
+  Cara cepat membukanya: tekan Windows+R, ketik
+      %LOCALAPPDATA%\PelangganKu
+  lalu tekan Enter.
+
+  CADANGKAN FOLDER "data" SECARA BERKALA. Salin ke Google Drive
+  atau flashdisk. Kalau komputer rusak, folder itulah yang
+  menyelamatkan database pelanggan Anda.
+
+  Menghapus aplikasi TIDAK menghapus folder ini, jadi data Anda
+  aman saat memasang ulang atau memperbarui versi.
+
+
+================================================================
+ G. YANG PERLU DISADARI
+================================================================
+
+  - Pembacaan OCR sangat akurat, tapi tidak 100%. Periksa sekilas
+    nomor HP sebelum mengirim pesan — salah satu digit berarti
+    pesan Anda sampai ke orang lain.
+
+  - Database ini berisi data pribadi pelanggan Anda: nama, nomor
+    telepon, dan alamat. Simpan di komputer sendiri, jangan
+    diunggah ke tempat umum atau dibagikan.
+
+  - Saat menghubungi pembeli, sebutkan bahwa Anda penjual dari
+    pesanan TikTok mereka. Selain lebih sopan, tingkat responsnya
+    jauh lebih tinggi daripada pesan yang terasa seperti spam.
+    Mengirim blast ke banyak nomor sekaligus juga berisiko
+    membuat nomor WhatsApp Anda diblokir.
+
+
+================================================================
+ KALAU ADA MASALAH
+================================================================
+
+  Aplikasi tidak mau terbuka
+      Tunggu 10-20 detik saat pertama dijalankan — mesin OCR
+      dimuat dulu. Kalau tetap gagal, pasang ulang.
+
+  Windows menampilkan peringatan keamanan
+      Wajar untuk aplikasi baru yang belum bersertifikat.
+      Klik "Info selengkapnya" lalu "Tetap jalankan".
+
+  Banyak data terbaca salah
+      Periksa cara screenshot di bagian B — paling sering
+      penyebabnya tanda mata belum diklik.
+
+  Lupa kata sandi
+      Hapus berkas data\pelangganku.db di folder data, lalu buka
+      aplikasi lagi. PERHATIAN: ini menghapus seluruh database.
+      Pulihkan dari cadangan Anda kalau ada.
+
+================================================================

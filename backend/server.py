@@ -3,7 +3,7 @@ from fastapi import FastAPI, APIRouter, HTTPException, Depends, UploadFile, File
 from fastapi.responses import StreamingResponse, Response
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
-from motor.motor_asyncio import AsyncIOMotorClient
+
 import os
 import io
 import csv
@@ -31,11 +31,24 @@ from seed_data import seed_all
 from i18n import T, set_lang
 
 # ---------------------------------------------------------------------------
-# MongoDB
+# Basis data
 # ---------------------------------------------------------------------------
-mongo_url = os.environ["MONGO_URL"]
-client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ["DB_NAME"]]
+# Aplikasi terinstal memakai basis data lokal berbasis berkas (tanpa server).
+# MONGO_URL masih dihormati supaya versi web lama tetap bisa dijalankan.
+DB_NAME = os.environ.get("DB_NAME", "pelangganku")
+mongo_url = os.environ.get("MONGO_URL", "").strip()
+
+if mongo_url:
+    from motor.motor_asyncio import AsyncIOMotorClient
+    client = AsyncIOMotorClient(mongo_url)
+    logger_awal = logging.getLogger("petapembeli")
+    logger_awal.info("Basis data: MongoDB")
+else:
+    from localdb import LocalClient
+    from appdirs_local import folder_data
+    client = LocalClient(folder_data() / "data")
+
+db = client[DB_NAME]
 
 app = FastAPI(title="PelangganKu API")
 api = APIRouter(prefix="/api")
@@ -1306,3 +1319,49 @@ async def on_startup():
 @app.on_event("shutdown")
 async def on_shutdown():
     client.close()
+
+
+# ---------------------------------------------------------------------------
+# Tampilan depan — disajikan langsung oleh backend ini
+# ---------------------------------------------------------------------------
+# Pada aplikasi terinstal, React yang sudah dibangun ikut dibungkus dan
+# disajikan dari sini, sehingga tidak ada server terpisah dan tidak ada
+# permintaan ke internet. Kalau folder build tidak ada (mode pengembangan),
+# bagian ini dilewati saja.
+def _folder_build() -> Optional[Path]:
+    from appdirs_local import folder_aplikasi
+    for kandidat in (
+        folder_aplikasi() / "frontend_build",      # hasil bungkusan PyInstaller
+        ROOT_DIR.parent / "frontend" / "build",    # hasil build biasa
+    ):
+        if (kandidat / "index.html").exists():
+            return kandidat
+    return None
+
+
+_BUILD = _folder_build()
+
+if _BUILD:
+    from fastapi.staticfiles import StaticFiles
+    from fastapi.responses import FileResponse
+
+    app.mount("/static", StaticFiles(directory=str(_BUILD / "static")), name="static")
+
+    @app.get("/{jalur:path}")
+    async def sajikan_tampilan(jalur: str):
+        """Sajikan berkas statis; sisanya dikembalikan ke index.html supaya
+        rute sisi-klien (React Router) tetap jalan saat halaman dimuat ulang."""
+        if jalur.startswith("api/"):
+            raise HTTPException(status_code=404, detail="Not found")
+        berkas = (_BUILD / jalur).resolve()
+        try:
+            berkas.relative_to(_BUILD.resolve())      # cegah keluar dari folder
+        except ValueError:
+            raise HTTPException(status_code=404, detail="Not found")
+        if jalur and berkas.is_file():
+            return FileResponse(str(berkas))
+        return FileResponse(str(_BUILD / "index.html"))
+
+    logger.info("Tampilan depan disajikan dari %s", _BUILD)
+else:
+    logger.info("Folder build tampilan depan tidak ditemukan — mode API saja")
