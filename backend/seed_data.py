@@ -1,5 +1,7 @@
 """Seed default users, normalization rules, tags, WA template, and demo customers."""
 import random
+import os
+import secrets
 import uuid
 from datetime import datetime, timedelta, timezone
 
@@ -206,23 +208,77 @@ async def _backfill_tiktok_profiles(db):
         )
 
 
+def _sandi_acak(panjang: int = 12) -> str:
+    """Kata sandi acak yang masih enak dibaca dan diketik.
+
+    Huruf yang mudah tertukar (O/0, l/1/I) sengaja dibuang supaya pemilik
+    tidak salah mengetik saat menyalinnya dari berkas."""
+    abjad = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789"
+    return "".join(secrets.choice(abjad) for _ in range(panjang))
+
+
+def _tulis_kredensial(email: str, sandi: str) -> None:
+    """Simpan kata sandi awal ke berkas di folder data pengguna."""
+    try:
+        from appdirs_local import folder_data
+        berkas = folder_data() / "AKUN-ANDA.txt"
+        berkas.write_text(
+            "PELANGGANKU - AKUN PEMILIK\n"
+            "==========================\n\n"
+            f"  Email       : {email}\n"
+            f"  Kata sandi  : {sandi}\n\n"
+            "Kata sandi ini dibuat acak khusus untuk komputer ini.\n"
+            "Segera ganti lewat menu Pengaturan setelah masuk,\n"
+            "lalu hapus berkas ini.\n",
+            encoding="utf-8")
+        try:
+            os.chmod(berkas, 0o600)
+        except OSError:
+            pass
+    except Exception:
+        pass
+
+
 async def seed_all(db):
+    """Isi data awal.
+
+    Untuk aplikasi yang dijual, bawaannya KOSONG: pelanggan tidak boleh
+    menerima data contoh milik orang lain. Yang tetap diisi hanyalah data
+    acuan yang memang berguna untuk semua orang — aturan penyeragaman nama
+    wilayah, tag bawaan, template WhatsApp, dan pemetaan kolom CSV.
+
+    Data contoh (pembeli & kreator fiktif) hanya diisi kalau dinyalakan
+    lewat SEED_DEMO=1, misalnya saat Anda memperagakan aplikasi ke calon
+    pembeli.
+    """
     now = datetime.now(timezone.utc).isoformat()
+    isi_demo = os.environ.get("SEED_DEMO", "0").strip().lower() in ("1", "true", "ya")
 
     # 0. One-time migration: replace old @petapembeli.id accounts with @pelangganku.id
     await db.users.delete_many({"email": {"$in": ["owner@petapembeli.id", "operator@petapembeli.id"]}})
 
-    # 1. Users
-    if not await db.users.find_one({"email": "owner@pelangganku.id"}):
+    # 1. Akun pemilik
+    #
+    # Kata sandi TIDAK boleh sama untuk semua pemasangan: kalau bawaannya
+    # seragam, siapa pun yang tahu bisa membuka aplikasi milik pelanggan
+    # lain. Jadi dibuat acak per komputer, lalu dituliskan sekali ke berkas
+    # supaya pemiliknya bisa membacanya saat pertama masuk.
+    if not await db.users.find_one({"role": "owner"}):
+        sandi = os.environ.get("OWNER_PASSWORD", "").strip() or _sandi_acak()
         await db.users.insert_one({
             "id": str(uuid.uuid4()),
             "email": "owner@pelangganku.id",
-            "password_hash": hash_password("owner123"),
+            "password_hash": hash_password(sandi),
             "role": "owner",
-            "name": "Owner Toko",
+            "name": "Pemilik Toko",
             "created_at": now,
+            "harus_ganti_sandi": True,
         })
-    if not await db.users.find_one({"email": "operator@pelangganku.id"}):
+        _tulis_kredensial("owner@pelangganku.id", sandi)
+
+    # Akun operator contoh hanya dibuat saat peragaan. Pemilik bisa
+    # menambah operator sendiri lewat menu Pengaturan.
+    if isi_demo and not await db.users.find_one({"email": "operator@pelangganku.id"}):
         await db.users.insert_one({
             "id": str(uuid.uuid4()),
             "email": "operator@pelangganku.id",
@@ -254,77 +310,27 @@ async def seed_all(db):
     if not await db.settings.find_one({"key": "csv_mapping"}):
         await db.settings.insert_one({"key": "csv_mapping", "value": DEFAULT_CSV_MAPPING})
 
-    # 5. Creator niches
-    if await db.creator_niches.count_documents({}) == 0:
-        docs = [
-            {"id": str(uuid.uuid4()), "handle": h, "niche": n, "created_at": now}
-            for h, n in DEMO_CREATORS
-        ]
-        await db.creator_niches.insert_many(docs)
+    # 5-6. Data contoh: 100 pembeli fiktif yang menyalakan semua halaman
+    if isi_demo and await db.customers.count_documents({}) == 0:
+        from demo_data import buat_data
+        bahan = buat_data(100)
 
-    # 6. Demo customers + orders
-    if await db.customers.count_documents({}) == 0:
-        base_date = datetime.now(timezone.utc) - timedelta(days=90)
-        order_counter = 1000
+        if await db.creator_niches.count_documents({}) == 0:
+            await db.creator_niches.insert_many([
+                {"id": str(uuid.uuid4()), "created_at": now, **k}
+                for k in bahan["kreator"]
+            ])
 
-        for idx, (name, uname, phone, kota, prov, kec, kel, detail, creator) in enumerate(DEMO_CUSTOMERS):
-            cust_id = str(uuid.uuid4())
-            n_orders = REPEAT_PHONES.get(phone, 1)
-            first_seen = (base_date + timedelta(days=idx)).isoformat()
-            last_seen = (base_date + timedelta(days=idx + n_orders * 7)).isoformat()
+        # petakan nama tag -> id supaya pelanggan bisa langsung ditandai
+        peta_tag = {t["name"]: t["id"] for t in await db.tags.find({}, {"_id": 0}).to_list(50)}
+        for c in bahan["pelanggan"]:
+            c["tag_ids"] = [peta_tag[n] for n in c.pop("_tag_names", []) if n in peta_tag]
+            await db.customers.insert_one(c)
 
-            # Fetch tag ids
-            tag_ids = []
-            for tag_name in DEMO_TAGS.get(phone, []):
-                t = await db.tags.find_one({"name": tag_name})
-                if t:
-                    tag_ids.append(t["id"])
-
-            await db.customers.insert_one({
-                "id": cust_id,
-                "recipient_name": name,
-                "tiktok_username": uname,
-                "phone": phone,
-                "kota": kota,
-                "provinsi": prov,
-                "kecamatan": kec,
-                "kelurahan": kel,
-                "address_detail": detail,
-                "negara": "Indonesia",
-                "affiliate_creator": creator,
-                "order_count": n_orders,
-                "is_repeat": n_orders > 1,
-                "first_seen": first_seen,
-                "last_seen": last_seen,
-                "notes": DEMO_NOTES.get(phone, ""),
-                "tag_ids": tag_ids,
-                "source": "screenshot",
-                "created_at": now,
-            })
-
-            # Create n_orders order records
-            for k in range(n_orders):
-                order_counter += 1
-                await db.orders.insert_one({
-                    "id": str(uuid.uuid4()),
-                    "order_id": f"5859{order_counter:015d}",
-                    "customer_id": cust_id,
-                    "phone": phone,
-                    "recipient_name": name,
-                    "tiktok_username": uname,
-                    "kota": kota,
-                    "provinsi": prov,
-                    "kecamatan": kec,
-                    "kelurahan": kel,
-                    "address_detail": detail,
-                    "negara": "Indonesia",
-                    "affiliate_creator": creator,
-                    "created_at_order": (base_date + timedelta(days=idx + k * 7)).strftime("%d/%m/%Y %H:%M:%S"),
-                    "source": "screenshot",
-                    "variation": None,
-                    "quantity": 1,
-                    "created_at": now,
-                })
+        for o in bahan["pesanan"]:
+            await db.orders.insert_one(o)
+        for o in bahan["pesanan_csv"]:
+            await db.csv_orders.insert_one(o)
 
     # 7. Backfill any customer missing TikTok profile stats (idempotent).
     #    Ensures demo data survives across schema evolutions & restarts.
