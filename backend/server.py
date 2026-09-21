@@ -97,13 +97,35 @@ def strip_id(doc: dict) -> dict:
     return doc
 
 
+RE_AWALAN_KOTA = re.compile(
+    r"^\s*(kota administrasi|kabupaten administrasi|kotamadya|kabupaten|"
+    r"kota|kab\.|kab)\s+", re.I)
+
+
+def rapikan_nama_kota(nilai: Optional[str]) -> Optional[str]:
+    """Buang awalan administratif dari nama kota.
+
+    TikTok menuliskan "Kota Depok" dan "Kab. Gianyar". Yang enak dibaca di
+    tabel, peta, dan hasil ekspor adalah "Depok" dan "Gianyar". Dirapikan di
+    sini supaya berlaku untuk semua data — bukan cuma data contoh.
+    """
+    if not nilai:
+        return nilai
+    bersih = RE_AWALAN_KOTA.sub("", str(nilai)).strip()
+    return bersih or nilai
+
+
 async def apply_normalization(value: Optional[str], level: str) -> Optional[str]:
     """Look up a normalization rule and return normalized value. Also track unmapped."""
     if not value:
         return value
     rule = await db.norm_rules.find_one({"raw": value, "level": level})
     if rule:
-        return rule["normalized"]
+        return rapikan_nama_kota(rule["normalized"]) if level == "kota" else rule["normalized"]
+    if level == "kota":
+        rapi = rapikan_nama_kota(value)
+        if rapi != value:
+            return rapi
     # Track as unmapped (unique upsert)
     await db.unmapped.update_one(
         {"raw": value, "level": level},
