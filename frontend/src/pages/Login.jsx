@@ -11,8 +11,8 @@ export default function Login() {
   const { user, login } = useAuth();
   const { t } = useT();
   const nav = useNavigate();
-  const [email, setEmail] = useState("owner@pelangganku.id");
-  const [password, setPassword] = useState("owner123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
   if (user) return <Navigate to="/dashboard" replace />;
@@ -31,10 +31,6 @@ export default function Login() {
     }
   };
 
-  const pickDemo = (kind) => {
-    if (kind === "owner") { setEmail("owner@pelangganku.id"); setPassword("owner123"); }
-    else { setEmail("operator@pelangganku.id"); setPassword("operator123"); }
-  };
 
   return (
     <div className="min-h-screen flex items-center justify-center px-6 py-12 relative overflow-hidden"
@@ -101,22 +97,6 @@ export default function Login() {
               {loading && <Loader2 className="w-4 h-4 animate-spin" />}
               {loading ? t("login.processing") : t("login.submit")}
             </button>
-
-            <div className="pt-3 border-t space-y-2" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
-              <div className="uppercase tracking-wider font-semibold text-gray-500 text-[10px]">
-                {t("login.demoAccounts")}
-              </div>
-              <div className="flex gap-2">
-                <button type="button" onClick={() => pickDemo("owner")} data-testid="demo-owner-btn"
-                        className="pp-btn-secondary flex-1 rounded-lg py-2 text-xs">
-                  {t("login.demoOwner")}
-                </button>
-                <button type="button" onClick={() => pickDemo("operator")} data-testid="demo-operator-btn"
-                        className="pp-btn-secondary flex-1 rounded-lg py-2 text-xs">
-                  {t("login.demoOperator")}
-                </button>
-              </div>
-            </div>
           </form>
         </div>
       </div>
