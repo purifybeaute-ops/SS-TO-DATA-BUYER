@@ -386,7 +386,6 @@ export default function Landing() {
   const { user, login } = useAuth();
   const { t, lang } = useT();
   const nav = useNavigate();
-  const [autoLoading, setAutoLoading] = useState(null);
 
   if (user) return <Navigate to="/dashboard" replace />;
 
@@ -398,19 +397,6 @@ export default function Landing() {
   const primaryCta = () => nav("/login");
   const scrollHow = () => document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" });
 
-  const autoLogin = async (kind) => {
-    setAutoLoading(kind);
-    try {
-      const email = kind === "owner" ? "owner@pelangganku.id" : "operator@pelangganku.id";
-      const password = kind === "owner" ? "owner123" : "operator123";
-      await login(email, password);
-      toast.success(t("login.success"));
-      nav("/dashboard", { replace: true });
-    } catch (err) {
-      toast.error(err?.response?.data?.detail || t("login.failed"));
-      setAutoLoading(null);
-    }
-  };
 
   // Split hero headline into "The truth: you're" + "blind" + "in your own marketplace."
   const heroText = t("login.hero"); // "The truth: you're blind in your own marketplace." or ID variant
@@ -483,25 +469,6 @@ export default function Landing() {
               </div>
 
               <div className="space-y-3">
-                <div className="flex flex-wrap items-center gap-2 text-xs text-gray-400 font-medium">
-                  <span>{t("land.hero.tryAs")}</span>
-                  <button
-                    onClick={() => autoLogin("owner")}
-                    disabled={autoLoading !== null}
-                    data-testid="landing-demo-owner-btn"
-                    className="px-3 py-1.5 glass rounded-md hover:border-cyan-300/50 hover:text-cyan-300 transition disabled:opacity-60"
-                  >
-                    {autoLoading === "owner" ? t("login.processing") : t("land.hero.demoOwner")}
-                  </button>
-                  <button
-                    onClick={() => autoLogin("operator")}
-                    disabled={autoLoading !== null}
-                    data-testid="landing-demo-operator-btn"
-                    className="px-3 py-1.5 glass rounded-md hover:border-cyan-300/50 hover:text-cyan-300 transition disabled:opacity-60"
-                  >
-                    {autoLoading === "operator" ? t("login.processing") : t("land.hero.demoOperator")}
-                  </button>
-                </div>
                 <ul className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 gap-x-4 text-xs sm:text-sm text-gray-400">
                   {["land.chip.1","land.chip.2","land.chip.3","land.chip.4","land.chip.5"].map((k, i) => (
                     <li key={k} className={`flex items-start gap-2 ${i === 4 ? "sm:col-span-2" : ""}`}>
