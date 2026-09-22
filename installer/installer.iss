@@ -12,7 +12,10 @@
 #endif
 
 [Setup]
-AppId={{8F3A1C22-9B4E-4E5A-9D7C-PELANGGANKU01}
+; JANGAN PERNAH diubah setelah versi ini dijual. Windows memakai nomor ini
+; untuk mengenali "aplikasi yang sama", jadi kalau berubah, versi baru akan
+; terpasang berdampingan dengan versi lama alih-alih memperbaruinya.
+AppId={{39610A45-A366-4B90-8ED2-0D0884624F5B}
 AppName={#NamaApp}
 AppVersion={#VersiApp}
 AppPublisher={#PenerbitApp}
@@ -60,6 +63,9 @@ Filename: "{app}\{#ExeApp}"; \
 [UninstallDelete]
 Type: filesandordirs; Name: "{app}\_internal\__pycache__"
 
+[Messages]
+indonesia.WelcomeLabel2=Aplikasi ini akan memasang [name/ver] di komputer Anda.%n%nSeluruh data pembeli disimpan di komputer ini dan tidak pernah dikirim ke mana pun.
+
 [Code]
 // ---------------------------------------------------------------------
 //  Penghapusan data saat uninstall
@@ -90,7 +96,7 @@ begin
     try
       repeat
         if (Cari.Name <> '.') and (Cari.Name <> '..') then begin
-          if (Cari.Attributes and FILE_ATTRIBUTE_DIRECTORY) <> 0 then
+          if DirExists(Sumber + '\' + Cari.Name) then
             SalinIsiFolder(Sumber + '\' + Cari.Name, Tujuan + '\' + Cari.Name)
           else
             FileCopy(Sumber + '\' + Cari.Name, Tujuan + '\' + Cari.Name, False);
@@ -146,6 +152,3 @@ begin
   else
     MsgBox('Seluruh data pelanggan sudah dihapus.', mbInformation, MB_OK);
 end;
-
-[Messages]
-indonesia.WelcomeLabel2=Aplikasi ini akan memasang [name/ver] di komputer Anda.%n%nSeluruh data pembeli disimpan di komputer ini dan tidak pernah dikirim ke mana pun.
