@@ -76,6 +76,16 @@ indonesia.WelcomeLabel2=Aplikasi ini akan memasang [name/ver] di komputer Anda.%
 //  data pribadi pembeli tidak boleh tertinggal diam-diam di komputernya.
 // ---------------------------------------------------------------------
 
+// Ganti baris. Sengaja dibuat jadi fungsi, bukan ditulis sebagai kode angka
+// langsung: Inno Setup memperlakukan baris yang diawali tanda pagar sebagai
+// perintah kompiler (seperti define di atas), jadi kode ganti-baris yang
+// kebetulan jatuh di awal baris akan membuat kompilasi gagal. Dengan fungsi
+// ini hal itu tidak mungkin terjadi lagi.
+function NL(): String;
+begin
+  Result := Chr(13) + Chr(10);
+end;
+
 function FolderData(): String;
 begin
   Result := ExpandConstant('{localappdata}\PelangganKu');
@@ -118,27 +128,27 @@ begin
   if not DirExists(Data) then Exit;
 
   if MsgBox(
-      'Hapus juga seluruh data pelanggan?' + #13#10#13#10 +
-      'Data Anda tersimpan di:' + #13#10 + Data + #13#10#13#10 +
-      'Pilih TIDAK kalau Anda berencana memasang PelangganKu lagi — ' +
-      'database Anda akan tetap utuh dan langsung terbaca.' + #13#10#13#10 +
+      'Hapus juga seluruh data pelanggan?' + NL + NL +
+      'Data Anda tersimpan di:' + NL + Data + NL + NL +
+      'Pilih TIDAK kalau Anda berencana memasang PelangganKu lagi - ' +
+      'database Anda akan tetap utuh dan langsung terbaca.' + NL + NL +
       'Pilih YA kalau Anda ingin bersih total. Data nama, nomor telepon, ' +
       'dan alamat pembeli akan dihapus permanen dan TIDAK BISA dikembalikan.',
       mbConfirmation, MB_YESNO or MB_DEFBUTTON2) <> IDYES then Exit;
 
   if MsgBox(
-      'Simpan salinan cadangan dulu sebelum dihapus?' + #13#10#13#10 +
+      'Simpan salinan cadangan dulu sebelum dihapus?' + NL + NL +
       'Salinannya akan diletakkan di folder Documents Anda, dan tetap ada ' +
       'setelah aplikasi dicopot.',
       mbConfirmation, MB_YESNO or MB_DEFBUTTON1) = IDYES then begin
     Cadangan := FolderCadangan();
     SalinIsiFolder(Data, Cadangan);
     if DirExists(Cadangan) then
-      MsgBox('Cadangan tersimpan di:' + #13#10 + Cadangan,
+      MsgBox('Cadangan tersimpan di:' + NL + Cadangan,
              mbInformation, MB_OK)
     else begin
-      MsgBox('Cadangan GAGAL dibuat, jadi data tidak jadi dihapus.' + #13#10 +
-             'Data Anda masih utuh di:' + #13#10 + Data,
+      MsgBox('Cadangan GAGAL dibuat, jadi data tidak jadi dihapus.' + NL +
+             'Data Anda masih utuh di:' + NL + Data,
              mbError, MB_OK);
       Exit;
     end;
@@ -146,8 +156,8 @@ begin
 
   DelTree(Data, True, True, True);
   if DirExists(Data) then
-    MsgBox('Sebagian data tidak bisa dihapus, mungkin masih dipakai program lain.' +
-           #13#10 + 'Coba hapus manual folder ini:' + #13#10 + Data,
+    MsgBox('Sebagian data tidak bisa dihapus, mungkin masih dipakai ' +
+           'program lain.' + NL + 'Coba hapus manual folder ini:' + NL + Data,
            mbError, MB_OK)
   else
     MsgBox('Seluruh data pelanggan sudah dihapus.', mbInformation, MB_OK);
