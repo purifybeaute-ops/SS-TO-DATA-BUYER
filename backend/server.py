@@ -157,6 +157,19 @@ async def login(body: LoginIn):
     if not user or not verify_password(body.password, user["password_hash"]):
         raise HTTPException(status_code=401, detail=T("auth.invalid_credentials"))
     token = create_token(user["id"], user["email"], user["role"])
+    
+    # Kata sandi awal ditulis ke AKUN-ANDA.txt supaya pemilik bisa membacanya
+    # saat pemasangan baru. Begitu dia berhasil masuk, berkas itu sudah tidak
+    # ada gunanya — dan membiarkan kata sandi tergeletak dalam teks biasa di
+    # komputer yang menyimpan data pelanggan bukan kebiasaan yang baik.
+    try:
+        from appdirs_local import folder_data
+        for nama in ("AKUN-ANDA.txt", ".akun_sudah_ditampilkan"):
+            berkas = folder_data() / nama
+            if berkas.exists():
+                berkas.unlink()
+    except Exception as e:
+        logger.warning("gagal menghapus berkas kredensial awal: %s", e)
     return {
         "token": token,
         "user": {
