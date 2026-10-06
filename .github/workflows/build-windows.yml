@@ -90,11 +90,34 @@ jobs:
       - name: Bungkus jadi aplikasi Windows
         run: pyinstaller --noconfirm --clean installer/pelangganku.spec
 
-      - name: Pastikan hasil bungkusan bisa dijalankan
+      - name: Pastikan OCR benar-benar hidup di hasil bungkusan
+        # Versi 0.1.15 lolos langkah ini dalam keadaan rusak: numpy tidak
+        # ikut terbungkus, jadi seluruh screenshot menghasilkan kolom kosong
+        # tanpa pesan kesalahan apa pun. Memeriksa "exe-nya terbentuk" saja
+        # tidak cukup -- aplikasinya harus dijalankan dan OCR-nya dibuktikan.
         shell: pwsh
+        env:
+          PELANGGANKU_DATA: ${{ github.workspace }}\uji-data
         run: |
           if (-not (Test-Path "dist/PelangganKu/PelangganKu.exe")) {
             throw "PelangganKu.exe tidak terbentuk"
+          }
+          foreach ($p in @("numpy", "cv2", "rapidocr_onnxruntime", "onnxruntime")) {
+            if (-not (Test-Path "dist/PelangganKu/_internal/$p")) {
+              throw "Paket '$p' tidak ikut terbungkus"
+            }
+          }
+          New-Item -ItemType Directory -Force -Path $env:PELANGGANKU_DATA | Out-Null
+          $proses = Start-Process -FilePath "dist/PelangganKu/PelangganKu.exe" `
+                                  -ArgumentList "--selftest" -Wait -PassThru
+          $catatan = Join-Path $env:PELANGGANKU_DATA "log.txt"
+          if (Test-Path $catatan) {
+            Write-Host "----- catatan uji mandiri -----"
+            Get-Content $catatan
+            Write-Host "-------------------------------"
+          }
+          if ($proses.ExitCode -ne 0) {
+            throw "Uji mandiri OCR GAGAL (kode keluar $($proses.ExitCode)) - jangan terbitkan versi ini"
           }
           $ukuran = (Get-ChildItem dist/PelangganKu -Recurse |
                      Measure-Object -Property Length -Sum).Sum / 1MB
