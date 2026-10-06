@@ -119,7 +119,12 @@ def siapkan_lingkungan() -> None:
             "# GEMINI_API_KEY=\n"
             "#\n"
             "# Ambang keyakinan sebelum dibantu AI (0.0 - 1.0)\n"
-            "# OCR_AMBANG_NAIK=0.75\n",
+            "# OCR_AMBANG_NAIK=0.75\n"
+            "#\n"
+            "# Isi data contoh (100 pembeli fiktif) untuk memperagakan aplikasi.\n"
+            "# Hanya berpengaruh kalau database masih kosong. Hapus folder\n"
+            "# 'data' dulu kalau ingin memulai ulang dari nol.\n"
+            "# SEED_DEMO=1\n",
             encoding="utf-8")
     os.environ.pop("MONGO_URL", None)      # aplikasi terinstal tidak pakai MongoDB
     os.environ.setdefault("DB_NAME", "pelangganku")
@@ -192,6 +197,90 @@ def buka_jendela(url: str) -> None:
     webview.start(icon=str(ikon) if ikon.exists() else None)
 
 
+def tampilkan_akun_awal() -> None:
+    """Tunjukkan kata sandi pemilik sekali saja, saat pemasangan baru.
+
+    Kata sandinya dibuat acak per komputer, jadi pemiliknya tidak mungkin
+    menebaknya sendiri. Tanpa ini mereka akan terjebak di halaman masuk.
+    """
+    berkas = folder_data() / "AKUN-ANDA.txt"
+    penanda = folder_data() / ".akun_sudah_ditampilkan"
+    if not berkas.exists() or penanda.exists():
+        return
+    try:
+        isi = berkas.read_text(encoding="utf-8")
+        email = sandi = "?"
+        for baris in isi.splitlines():
+            if "Email" in baris and ":" in baris:
+                email = baris.split(":", 1)[1].strip()
+            elif "Kata sandi" in baris and ":" in baris:
+                sandi = baris.split(":", 1)[1].strip()
+        if os.name == "nt":
+            import ctypes
+            ctypes.windll.user32.MessageBoxW(
+                None,
+                "Akun pemilik untuk komputer ini sudah dibuat.\n\n"
+                f"    Email       :  {email}\n"
+                f"    Kata sandi  :  {sandi}\n\n"
+                "Kata sandi ini acak dan hanya berlaku di komputer ini.\n"
+                "Segera ganti lewat menu Pengaturan setelah masuk.\n\n"
+                f"Tersimpan juga di:\n{berkas}",
+                f"{JUDUL} - Selamat datang", 0x00000040)      # MB_ICONINFORMATION
+        else:
+            catat(f"Akun awal: {email} / {sandi}")
+        penanda.write_text("1", encoding="utf-8")
+    except Exception:
+        catat("Gagal menampilkan akun awal:\n" + traceback.format_exc())
+
+
+# ------------------------------------------------------------- uji mandiri
+def uji_mandiri() -> int:
+    """Pastikan mesin OCR benar-benar bisa dimuat DI DALAM bungkusan ini.
+
+    Dijalankan otomatis saat build, bukan oleh pengguna. Tanpa ini, build
+    bisa lolos hijau dalam keadaan rusak total: pada versi 0.1.15 numpy
+    tidak ikut terbungkus, cv2 gagal dimuat, dan setiap screenshot
+    mengembalikan kolom kosong tanpa satu pun pesan kesalahan. Installernya
+    tetap terbentuk dan tetap bisa dipasang.
+    """
+    masalah: list[str] = []
+
+    try:
+        import numpy
+        catat(f"numpy {numpy.__version__} termuat")
+    except Exception:
+        masalah.append("numpy tidak bisa dimuat:\n" + traceback.format_exc())
+
+    try:
+        import cv2
+        catat(f"cv2 {cv2.__version__} termuat")
+    except Exception:
+        masalah.append("cv2 tidak bisa dimuat:\n" + traceback.format_exc())
+
+    if not masalah:
+        try:
+            import cv2
+            import numpy as np
+            from rapidocr_onnxruntime import RapidOCR
+            mesin = RapidOCR()
+            contoh = np.full((90, 420, 3), 255, dtype=np.uint8)
+            cv2.putText(contoh, "PELANGGANKU 0812", (10, 58),
+                        cv2.FONT_HERSHEY_SIMPLEX, 1.1, (0, 0, 0), 2)
+            hasil, _ = mesin(contoh)
+            terbaca = " ".join(b[1] for b in (hasil or []))
+            catat(f"OCR membaca gambar uji: {terbaca!r}")
+            if not terbaca.strip():
+                catat("PERINGATAN: mesin OCR jalan tapi tidak membaca apa pun")
+        except Exception:
+            masalah.append("RapidOCR gagal dijalankan:\n" + traceback.format_exc())
+
+    if masalah:
+        catat("UJI MANDIRI GAGAL\n" + "\n".join(masalah))
+        return 1
+    catat("UJI MANDIRI LOLOS")
+    return 0
+
+
 # -------------------------------------------------------------------- main
 def main() -> None:
     catat(f"=== {NAMA_APP} mulai ===")
@@ -213,11 +302,15 @@ def main() -> None:
         sys.exit(1)
 
     catat(f"Server siap di {url}")
+    tampilkan_akun_awal()
     buka_jendela(url)
     catat("Jendela ditutup, aplikasi selesai")
 
 
 if __name__ == "__main__":
+    if "--selftest" in sys.argv:
+        catat("=== uji mandiri ===")
+        sys.exit(uji_mandiri())
     try:
         main()
     except SystemExit:
