@@ -16,9 +16,12 @@ from __future__ import annotations
 import base64
 import io
 import json
+import logging
 import os
 import re
 from typing import Any, Dict, List, Optional, Tuple
+
+logger = logging.getLogger("petapembeli.ocr")
 
 # ambang: di bawah ini dianggap meragukan dan dinaikkan ke AI
 AMBANG_NAIK = float(os.environ.get("OCR_AMBANG_NAIK", "0.75"))
@@ -44,7 +47,10 @@ def _ocr():
 RE_HP = re.compile(r"\(?\+?62\)?[\s-]*(\d[\d\s-]{7,15})")
 RE_SENSOR = re.compile(r"[*x]{3,}", re.I)
 RE_ANGKA_SOSIAL = re.compile(r"^[\d.,]+\s*[KMBkmb]?$")
-RE_ID_PESANAN = re.compile(r"\b(\d{12,22})\b")
+# ID pesanan TikTok panjangnya 16+ digit. Ambang lama (12) membuat nomor
+# telepon pembeli ikut tertangkap sebagai ID pesanan — terbukti pada
+# screenshot asli: 895615728932 (nomor HP) terbaca sebagai ID pesanan.
+RE_ID_PESANAN = re.compile(r"\b(\d{16,22})\b")
 RE_WAKTU = re.compile(r"\b(\d{2}/\d{2}/\d{4}[\s,]*\d{2}:\d{2}(?::\d{2})?)\b")
 
 
@@ -162,6 +168,81 @@ def parse_social_count(raw: Optional[str]) -> Optional[int]:
     return int(nilai * {"": 1, "K": 1_000, "M": 1_000_000, "B": 1_000_000_000}[akhiran])
 
 
+# Nama provinsi di layar TikTok ditulis dalam bahasa Inggris ("South
+# Sulawesi"), sementara peta dan seluruh data lain memakai bahasa Indonesia.
+# Tanpa pemetaan ini, satu provinsi akan terhitung dua kali di peta.
+PROVINSI_ID = {
+    "aceh": "Aceh", "nanggroe aceh darussalam": "Aceh",
+    "north sumatra": "Sumatera Utara", "north sumatera": "Sumatera Utara",
+    "west sumatra": "Sumatera Barat", "west sumatera": "Sumatera Barat",
+    "south sumatra": "Sumatera Selatan", "south sumatera": "Sumatera Selatan",
+    "riau": "Riau", "riau islands": "Kepulauan Riau",
+    "jambi": "Jambi", "bengkulu": "Bengkulu", "lampung": "Lampung",
+    "bangka belitung": "Kepulauan Bangka Belitung",
+    "bangka belitung islands": "Kepulauan Bangka Belitung",
+    "jakarta": "DKI Jakarta", "dki jakarta": "DKI Jakarta",
+    "special capital region of jakarta": "DKI Jakarta",
+    "west java": "Jawa Barat", "central java": "Jawa Tengah",
+    "east java": "Jawa Timur", "banten": "Banten",
+    "yogyakarta": "DI Yogyakarta",
+    "special region of yogyakarta": "DI Yogyakarta",
+    "bali": "Bali",
+    "west nusa tenggara": "Nusa Tenggara Barat",
+    "east nusa tenggara": "Nusa Tenggara Timur",
+    "west kalimantan": "Kalimantan Barat",
+    "central kalimantan": "Kalimantan Tengah",
+    "south kalimantan": "Kalimantan Selatan",
+    "east kalimantan": "Kalimantan Timur",
+    "north kalimantan": "Kalimantan Utara",
+    "north sulawesi": "Sulawesi Utara",
+    "central sulawesi": "Sulawesi Tengah",
+    "south sulawesi": "Sulawesi Selatan",
+    "southeast sulawesi": "Sulawesi Tenggara",
+    "west sulawesi": "Sulawesi Barat", "gorontalo": "Gorontalo",
+    "maluku": "Maluku", "north maluku": "Maluku Utara",
+    "papua": "Papua", "west papua": "Papua Barat",
+    "southwest papua": "Papua Barat Daya", "south papua": "Papua Selatan",
+    "central papua": "Papua Tengah", "highland papua": "Papua Pegunungan",
+}
+
+# "Gowa Regency" dan "Lhokseumawe City" -> "Gowa", "Lhokseumawe".
+RE_AKHIRAN_KOTA = re.compile(
+    r"\s+(regency|city|municipality|administrative city)\s*$", re.I)
+RE_AWALAN_WILAYAH = re.compile(
+    r"^\s*(kota administrasi|kabupaten administrasi|kotamadya|kabupaten|"
+    r"kota|kab\.|kab)\s+", re.I)
+
+
+def _bersih_wilayah(bagian: str) -> str:
+    """Rapikan satu potongan nama wilayah dari baris alamat TikTok.
+
+    TikTok menuliskan baris wilayah dengan spasi diganti tanda tambah
+    ("Somba+Opu", "South+Sulawesi"). Kalau OCR memotong baris di tengah
+    kata, muncul spasi palsu: "South+Sul awesi". Jadi pada potongan yang
+    memang memakai tanda tambah, setiap spasi pasti berasal dari pemotongan
+    baris dan boleh dibuang. Potongan tanpa tanda tambah ("Blang Naleung
+    Mameh") spasinya asli dan tidak boleh disentuh.
+    """
+    teks = bagian.strip()
+    if "+" in teks:
+        teks = re.sub(r"\s+", "", teks).replace("+", " ")
+    return re.sub(r"\s{2,}", " ", teks).strip(" ,")
+
+
+def _rapikan_kota(nilai: Optional[str]) -> Optional[str]:
+    if not nilai:
+        return nilai
+    bersih = RE_AKHIRAN_KOTA.sub("", str(nilai))
+    bersih = RE_AWALAN_WILAYAH.sub("", bersih).strip()
+    return bersih or nilai
+
+
+def _rapikan_provinsi(nilai: Optional[str]) -> Optional[str]:
+    if not nilai:
+        return nilai
+    return PROVINSI_ID.get(str(nilai).strip().lower(), str(nilai).strip())
+
+
 def parse_address(raw: Optional[str]) -> Dict[str, Optional[str]]:
     """Pecah alamat jadi detail + kelurahan/kecamatan/kota/provinsi/negara.
 
@@ -179,10 +260,14 @@ def parse_address(raw: Optional[str]) -> Dict[str, Optional[str]]:
     if not baris:
         return keluar
 
-    # cari baris wilayah = baris yang diakhiri nama negara
+    # Cari baris wilayah = baris yang diakhiri nama negara.
+    # Huruf I besar sering terbaca sebagai l kecil oleh OCR, jadi
+    # "lndonesia" harus tetap dikenali — tanpa ini seluruh pemecahan
+    # wilayah gagal dan alamatnya jatuh utuh ke kolom detail.
+    RE_NEGARA = re.compile(r"[il1]ndonesia\s*$", re.I)
     idx_wilayah = None
     for i in range(len(baris) - 1, -1, -1):
-        if re.search(r"(indonesia)\s*$", baris[i], re.I):
+        if RE_NEGARA.search(baris[i]):
             idx_wilayah = i
             break
 
@@ -190,7 +275,8 @@ def parse_address(raw: Optional[str]) -> Dict[str, Optional[str]]:
         keluar["address_detail"] = " ".join(baris).strip(" ,")
         return keluar
 
-    bagian = [p.strip() for p in baris[idx_wilayah].split(",") if p.strip()]
+    bagian = [_bersih_wilayah(p) for p in baris[idx_wilayah].split(",")]
+    bagian = [p for p in bagian if p]
     ekor = bagian[-5:] if len(bagian) >= 5 else bagian
     if len(ekor) == 5:
         (keluar["kelurahan"], keluar["kecamatan"], keluar["kota"],
@@ -205,6 +291,11 @@ def parse_address(raw: Optional[str]) -> Dict[str, Optional[str]]:
     elif len(ekor) == 2:
         keluar["kota"], keluar["provinsi"] = ekor
         keluar["negara"] = "Indonesia"
+
+    keluar["kota"] = _rapikan_kota(keluar["kota"])
+    keluar["provinsi"] = _rapikan_provinsi(keluar["provinsi"])
+    if keluar["negara"]:
+        keluar["negara"] = "Indonesia"       # perbaiki "lndonesia" dari OCR
 
     sisa = baris[:idx_wilayah]
     # kalau detail alamat menempel di baris wilayah, potong bagian ekornya
@@ -243,6 +334,23 @@ def ekstrak_lokal(gambar_bytes: bytes) -> Dict[str, Any]:
             if re.match(r"^(Alamat|Kontak)", b.teks, re.I):
                 continue
             data["tiktok_username"] = b.teks
+            yakin["tiktok_username"] = b.skor
+            break
+
+    if not data["tiktok_username"]:
+        # Pada tampilan HP tidak ada label apa pun: username berdiri sendiri
+        # di bagian atas, di antara judul halaman dan "Alamat pengiriman".
+        batas = _cari(blok, r"alamat\s*peng[il1]r[il1]m")
+        for b in blok[:batas if batas is not None else len(blok)]:
+            t = b.teks.strip()
+            if re.match(r"^(informasi|detail|rincian|alamat|pesanan|kembali)",
+                        t, re.I):
+                continue                       # judul halaman, bukan username
+            if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{1,23}", t):
+                continue                       # jam, baterai, ikon, dsb.
+            if re.fullmatch(r"[\d.,:%]+", t):
+                continue                       # angka murni dari bilah status
+            data["tiktok_username"] = t
             yakin["tiktok_username"] = b.skor
             break
 
@@ -298,10 +406,15 @@ def ekstrak_lokal(gambar_bytes: bytes) -> Dict[str, Any]:
             data["order_id"] = m.group(1)
             yakin["order_id"] = sumber.skor
     if not data["order_id"]:
-        m = RE_ID_PESANAN.search(semua_teks)
-        if m:
+        # Tanpa label, jangan sampai deretan angka nomor telepon ikut
+        # terambil sebagai ID pesanan.
+        digit_hp = re.sub(r"\D", "", data["phone"] or "")
+        for m in RE_ID_PESANAN.finditer(semua_teks):
+            if digit_hp and m.group(1) in digit_hp:
+                continue
             data["order_id"] = m.group(1)
             yakin["order_id"] = 0.6
+            break
 
     i = _cari(blok, r"Waktu\s*Pembuatan")
     if i is not None:
@@ -455,6 +568,10 @@ async def extract_from_image(image_base64: str) -> Dict[str, Any]:
     try:
         hasil = ekstrak_lokal(gambar)
     except Exception as e:                       # OCR lokal gagal total
+        # Dicatat, bukan cuma dikembalikan. Versi 0.1.15 menelan galat ini
+        # diam-diam: numpy tidak ikut terbungkus, cv2 gagal dimuat, dan
+        # 73 screenshot menghasilkan kolom kosong tanpa satu pun pesan.
+        logger.error("OCR lokal gagal: %s", e, exc_info=True)
         hasil = {"confidence": {}, "_sumber": "lokal-gagal",
                  "_tersensor": False, "_halaman_pesanan": True,
                  "_galat_lokal": str(e)}
