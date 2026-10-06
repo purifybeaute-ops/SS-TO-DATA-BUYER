@@ -29,8 +29,13 @@ tersembunyi = [
 tersembunyi += collect_submodules("webview")
 
 biner = []
-# RapidOCR membawa berkas model ONNX yang harus ikut dibungkus
-for paket in ("rapidocr_onnxruntime", "onnxruntime"):
+# numpy dan cv2 WAJIB disebut terang-terangan di sini.
+#
+# Versi 0.1.15 lolos build tanpa numpy. Akibatnya cv2 gagal dimuat, dan
+# karena kegagalan OCR ditelan diam-diam, aplikasi tetap terlihat normal
+# sementara SELURUH screenshot menghasilkan kolom kosong. Di catatan log
+# hanya muncul: OpenCV bindings requires "numpy" package.
+for paket in ("numpy", "cv2", "rapidocr_onnxruntime", "onnxruntime"):
     d, b, h = collect_all(paket)
     berkas_data += d
     biner += b
